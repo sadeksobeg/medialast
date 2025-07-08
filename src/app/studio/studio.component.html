@@ -17,56 +17,61 @@
         <li class="nav-item" [class.active]="activeNavItem === 'videos'" (click)="onNavClick('videos')">
           <i class="icon-videos"></i>
           <span>VIDEOS</span>
-          <div class="videos-panel" *ngIf="activeNavItem === 'videos' && isVideosPanelExpanded">
-            <div class="videos-category">
-              <h4>PROJECT VIDEOS</h4>
-              <div class="video-grid">
-                <div 
-                  *ngFor="let video of projectVideos" 
-                  class="video-card" 
-                  cdkDrag 
-                  [cdkDragData]="{ name: video.title, type: 'video', mediaId: video.id, src: video.video }"
-                  (click)="selectVideoForTimeline(video)"
-                >
-                  <div class="video-thumbnail">
-                    <video 
-                      *ngIf="video.video && video.video.trim() !== ''" 
-                      [src]="video.video" 
-                      preload="metadata" 
-                      muted
-                      (error)="onVideoThumbnailError($event, video)"
-                    ></video>
-                    <div *ngIf="!video.video || video.video.trim() === ''" class="no-video-thumbnail">
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
-                      </svg>
-                    </div>
-                    <div class="play-overlay">
-                      <i class="icon-play"></i>
-                    </div>
-                  </div>
-                  <span class="video-title">{{ video.title }}</span>
-                  <div class="video-actions">
-                    <button class="action-btn" (click)="previewVideo(video); $event.stopPropagation()" title="Preview">
-                      <i class="icon-eye"></i>
-                    </button>
-                    <button class="action-btn" (click)="addVideoToTimeline(video); $event.stopPropagation()" title="Add to Timeline">
-                      <i class="icon-plus"></i>
-                    </button>
-                  </div>
+        </li>
+      </ul>
+      
+      <!-- Videos Panel -->
+      <div class="videos-panel" *ngIf="activeNavItem === 'videos' && isVideosPanelExpanded">
+        <div class="videos-category">
+          <h4>PROJECT VIDEOS</h4>
+          <div class="video-grid">
+            <div 
+              *ngFor="let video of projectVideos" 
+              class="video-card" 
+              cdkDrag 
+              [cdkDragData]="{ name: video.title, type: 'video', mediaId: video.id, src: video.video, media: video }"
+              (click)="selectVideoForTimeline(video)"
+            >
+              <div class="video-thumbnail">
+                <video 
+                  *ngIf="video.video && video.video.trim() !== ''" 
+                  [src]="video.video" 
+                  preload="metadata" 
+                  muted
+                  (error)="onVideoThumbnailError($event, video)"
+                ></video>
+                <div *ngIf="!video.video || video.video.trim() === ''" class="no-video-thumbnail">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
+                  </svg>
+                </div>
+                <div class="play-overlay">
+                  <i class="icon-play"></i>
                 </div>
               </div>
-              <div *ngIf="projectVideos.length === 0" class="no-videos-message">
-                <p>No videos in this project yet.</p>
-                <p><small>Debug: Total media loaded: {{ projectVideos.length }}</small></p>
-                <button class="btn-create-media" (click)="navigateToCreateMedia()">
+              <span class="video-title">{{ video.title }}</span>
+              <div class="video-actions">
+                <button class="action-btn" (click)="previewVideo(video); $event.stopPropagation()" title="Preview">
+                  <i class="icon-eye"></i>
+                </button>
+                <button class="action-btn" (click)="addVideoToTimeline(video); $event.stopPropagation()" title="Add to Timeline">
                   <i class="icon-plus"></i>
-                  Create New Media
                 </button>
               </div>
             </div>
           </div>
-        </li>
+          <div *ngIf="projectVideos.length === 0" class="no-videos-message">
+            <p>No videos in this project yet.</p>
+            <p><small>Debug: Total media loaded: {{ projectVideos.length }}</small></p>
+            <button class="btn-create-media" (click)="navigateToCreateMedia()">
+              <i class="icon-plus"></i>
+              Create New Media
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <ul>
         <li class="nav-item" [class.active]="activeNavItem === 'photos'" (click)="onNavClick('photos')">
           <i class="icon-photos"></i>
           <span>PHOTOS</span>
@@ -90,91 +95,96 @@
         <li class="nav-item" [class.active]="activeNavItem === 'effects'" [class.expanded]="isEffectsPanelExpanded" (click)="onNavClick('effects')">
           <i class="icon-effects"></i>
           <span>EFFECTS</span>
-          <div class="effects-panel" *ngIf="isEffectsPanelExpanded">
-            <div class="effects-category">
-              <h4>TRENDING</h4>
-              <div class="effect-grid">
-                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Sharpen Ed...', type: 'effect', effectType: 'sharpen-edge' }">
-                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
-                  <span>Sharpen Ed...</span>
-                </div>
-                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Spooky Night', type: 'effect', effectType: 'spooky-night' }">
-                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
-                  <span>Spooky Night</span>
-                </div>
-                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Retro Shake', type: 'effect', effectType: 'retro-shake' }">
-                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
-                  <span>Retro Shake</span>
-                </div>
-                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Auto Style', type: 'effect', effectType: 'auto-style' }">
-                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
-                  <span>Auto Style</span>
-                </div>
-                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Dark Night', type: 'effect', effectType: 'dark-night' }">
-                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
-                  <span>Dark Night</span>
-                </div>
-                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Diamond', type: 'effect', effectType: 'diamond' }">
-                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
-                  <span>Diamond</span>
-                </div>
-                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Multi Pass', type: 'effect', effectType: 'multi-pass' }">
-                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
-                  <span>Multi Pass</span>
-                </div>
-                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Bright Camera', type: 'effect', effectType: 'bright-camera' }">
-                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
-                  <span>Bright Camera</span>
-                </div>
-                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Macbook Head', type: 'effect', effectType: 'macbook-head' }">
-                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
-                  <span>Macbook Head</span>
-                </div>
-                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Play Day', type: 'effect', effectType: 'play-day' }">
-                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
-                  <span>Play Day</span>
-                </div>
-                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Cartoon Style', type: 'effect', effectType: 'cartoon-style' }">
-                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
-                  <span>Cartoon Style</span>
-                </div>
-                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Second Water', type: 'effect', effectType: 'second-water' }">
-                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
-                  <span>Second Water</span>
-                </div>
-              </div>
+        </li>
+      </ul>
+      
+      <!-- Effects Panel -->
+      <div class="effects-panel" *ngIf="isEffectsPanelExpanded">
+        <div class="effects-category">
+          <h4>TRENDING</h4>
+          <div class="effect-grid">
+            <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Sharpen Ed...', type: 'effect', effectType: 'sharpen-edge' }">
+              <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+              <span>Sharpen Ed...</span>
             </div>
-            <div class="effects-category">
-              <h4>FOR YOU</h4>
-              <div class="effect-grid">
-                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Betamax', type: 'effect', effectType: 'betamax' }">
-                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
-                  <span>Betamax</span>
-                </div>
-                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Low Quality', type: 'effect', effectType: 'low-quality' }">
-                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
-                  <span>Low Quality</span>
-                </div>
-                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Retro Shake 2', type: 'effect', effectType: 'retro-shake-2' }">
-                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
-                  <span>Retro Shake 2</span>
-                </div>
-                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Dizzy', type: 'effect', effectType: 'dizzy' }">
-                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
-                  <span>Dizzy</span>
-                </div>
-                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Retro Shake 3', type: 'effect', effectType: 'retro-shake-3' }">
-                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
-                  <span>Retro Shake 3</span>
-                </div>
-                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Red Head', type: 'effect', effectType: 'red-head' }">
-                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
-                  <span>Red Head</span>
-                </div>
-              </div>
+            <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Spooky Night', type: 'effect', effectType: 'spooky-night' }">
+              <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+              <span>Spooky Night</span>
+            </div>
+            <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Retro Shake', type: 'effect', effectType: 'retro-shake' }">
+              <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+              <span>Retro Shake</span>
+            </div>
+            <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Auto Style', type: 'effect', effectType: 'auto-style' }">
+              <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+              <span>Auto Style</span>
+            </div>
+            <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Dark Night', type: 'effect', effectType: 'dark-night' }">
+              <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+              <span>Dark Night</span>
+            </div>
+            <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Diamond', type: 'effect', effectType: 'diamond' }">
+              <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+              <span>Diamond</span>
+            </div>
+            <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Multi Pass', type: 'effect', effectType: 'multi-pass' }">
+              <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+              <span>Multi Pass</span>
+            </div>
+            <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Bright Camera', type: 'effect', effectType: 'bright-camera' }">
+              <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+              <span>Bright Camera</span>
+            </div>
+            <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Macbook Head', type: 'effect', effectType: 'macbook-head' }">
+              <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+              <span>Macbook Head</span>
+            </div>
+            <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Play Day', type: 'effect', effectType: 'play-day' }">
+              <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+              <span>Play Day</span>
+            </div>
+            <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Cartoon Style', type: 'effect', effectType: 'cartoon-style' }">
+              <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+              <span>Cartoon Style</span>
+            </div>
+            <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Second Water', type: 'effect', effectType: 'second-water' }">
+              <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+              <span>Second Water</span>
             </div>
           </div>
-        </li>
+        </div>
+        <div class="effects-category">
+          <h4>FOR YOU</h4>
+          <div class="effect-grid">
+            <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Betamax', type: 'effect', effectType: 'betamax' }">
+              <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+              <span>Betamax</span>
+            </div>
+            <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Low Quality', type: 'effect', effectType: 'low-quality' }">
+              <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+              <span>Low Quality</span>
+            </div>
+            <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Retro Shake 2', type: 'effect', effectType: 'retro-shake-2' }">
+              <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+              <span>Retro Shake 2</span>
+            </div>
+            <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Dizzy', type: 'effect', effectType: 'dizzy' }">
+              <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+              <span>Dizzy</span>
+            </div>
+            <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Retro Shake 3', type: 'effect', effectType: 'retro-shake-3' }">
+              <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+              <span>Retro Shake 3</span>
+            </div>
+            <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Red Head', type: 'effect', effectType: 'red-head' }">
+              <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+              <span>Red Head</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <ul>
         <li class="nav-item" [class.active]="activeNavItem === 'stickers'" (click)="onNavClick('stickers')">
           <i class="icon-stickers"></i>
           <span>STICKERS</span>
