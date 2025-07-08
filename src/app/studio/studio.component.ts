@@ -27,7 +27,9 @@ interface Clip {
 export class StudioComponent implements OnInit {
   activeNavItem: string = 'effects';
   isEffectsPanelExpanded: boolean = true;
+  isVideosPanelExpanded: boolean = true;
   showExportModal: boolean = false;
+  showVideoPreviewModal: boolean = false;
   currentProjectName: string = 'My Awesome Video';
   currentProjectId: string;
   isPlaying: boolean = false;
@@ -35,6 +37,9 @@ export class StudioComponent implements OnInit {
   totalDuration: number = 8167; // 2:16:07 in seconds
   zoomLevel: number = 100;
   selectedClipId: string | null = null;
+  selectedVideoForPreview: string = '';
+  previewingVideo: MediaDto | null = null;
+  projectVideos: MediaDto[] = [];
 
   // Undo/Redo stacks
   undoStack: Clip[][] = [];
@@ -55,6 +60,7 @@ export class StudioComponent implements OnInit {
   ngOnInit(): void {
     console.log('ngOnInit: currentProjectId before loading media:', this.currentProjectId);
     this.loadProjectMedia(this.currentProjectId);
+    this.loadProjectVideos();
     this.saveStateForUndo();
   }
 
@@ -65,6 +71,15 @@ export class StudioComponent implements OnInit {
       this.isEffectsPanelExpanded = !this.isEffectsPanelExpanded;
     } else {
       this.isEffectsPanelExpanded = false;
+    }
+    
+    if (item === 'videos') {
+      this.isVideosPanelExpanded = !this.isVideosPanelExpanded;
+      if (this.isVideosPanelExpanded) {
+        this.loadProjectVideos();
+      }
+    } else {
+      this.isVideosPanelExpanded = false;
     }
     
     // Handle different navigation items
@@ -440,6 +455,70 @@ export class StudioComponent implements OnInit {
     this.clips.push(newClip);
     this.clips.sort((a, b) => a.track - b.track || a.startTime - b.startTime);
     this.showMessage(`New media added: ${newClip.name}`);
+  }
+
+  // Video management methods
+  loadProjectVideos(): void {
+    this.mediaService.getProjectMedias(this.currentProjectId).subscribe({
+      next: (videos: MediaDto[]) => {
+        this.projectVideos = videos;
+        console.log('Loaded project videos:', videos);
+      },
+      error: (error) => {
+        console.error('Failed to load project videos:', error);
+        this.showMessage('Failed to load project videos');
+      }
+    });
+  }
+
+  selectVideoForTimeline(video: MediaDto): void {
+    this.selectedVideoForPreview = video.video || '';
+    this.showMessage(`Selected video: ${video.title}`);
+  }
+
+  previewVideo(video: MediaDto): void {
+    this.previewingVideo = video;
+    this.showVideoPreviewModal = true;
+  }
+
+  closeVideoPreview(): void {
+    this.showVideoPreviewModal = false;
+    this.previewingVideo = null;
+  }
+
+  addVideoToTimeline(video: MediaDto): void {
+    this.saveStateForUndo();
+    const newClip: Clip = {
+      id: `video-${Date.now()}`,
+      name: video.title || 'Untitled Video',
+      type: 'video',
+      startTime: 0,
+      endTime: 30, // Default 30 seconds
+      duration: 30,
+      src: video.video || '',
+      mediaId: video.id,
+      track: 1 // Add to video track
+    };
+
+    this.clips.push(newClip);
+    this.clips.sort((a, b) => a.track - b.track || a.startTime - b.startTime);
+    this.showMessage(`Added "${video.title}" to timeline`);
+  }
+
+  navigateToCreateMedia(): void {
+    this.router.navigate(['/media/create']);
+  }
+
+  // Video player event handlers
+  onVideoLoaded(event: Event): void {
+    const video = event.target as HTMLVideoElement;
+    this.totalDuration = video.duration;
+    console.log('Video loaded, duration:', this.totalDuration);
+  }
+
+  onTimeUpdate(event: Event): void {
+    const video = event.target as HTMLVideoElement;
+    this.currentTime = video.currentTime;
   }
 
   // Helper functions
