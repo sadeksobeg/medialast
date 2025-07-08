@@ -3,24 +3,71 @@ import { PagedAndSortedResultRequestDto } from '@abp/ng.core';
 import { MediaDto, MediaService } from '@proxy/medias';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router'; // Import RouterModule
+import { FormsModule } from '@angular/forms'; // Import FormsModule for ngModel
 import Swal from 'sweetalert2'; // Import Swal
 import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-list-medias',
-  imports: [CommonModule, RouterModule], // Add RouterModule here
+  imports: [CommonModule, RouterModule, FormsModule], // Add FormsModule here
   templateUrl: './list-medias.component.html',
   styleUrls: ['./list-medias.component.scss']
 })
 export class ListMediasComponent implements OnInit {
   media: MediaDto[] = [];
+  projectVideos: MediaDto[] = [];
+  filteredVideos: MediaDto[] = [];
   selectedMedia: MediaDto | null = null;
   showVideoModal: boolean = false;
+  showVideoPreviewModal: boolean = false;
+  showAudioToolsModal: boolean = false;
+  showExportModal: boolean = false;
   isLoading: boolean = false;
   isVideoLoading: boolean = false;
   videoError: boolean = false;
   videoErrorMessage: string = '';
   videoUrl: string = '';
+  selectedVideoForPreview: string = '';
+  previewingVideo: MediaDto | null = null;
+  
+  // Navigation state
+  activeNavItem: string = 'media';
+  isAudioPanelExpanded: boolean = false;
+  isEffectsPanelExpanded: boolean = false;
+  isTextPanelExpanded: boolean = false;
+  isCaptionsPanelExpanded: boolean = false;
+  
+  // Project state
+  currentProjectName: string = 'Untitled Project';
+  
+  // Playback state
+  isPlaying: boolean = false;
+  currentTime: number = 0;
+  totalDuration: number = 240;
+  
+  // Timeline state
+  zoomLevel: number = 100;
+  timelineZoom: number = 100;
+  selectedClipId: string | null = null;
+  videoTracks: number[] = [0, 1, 2];
+  audioTracks: number[] = [0, 1, 2, 3];
+  timeMarkers: string[] = ['00:00', '01:00', '02:00', '03:00', '04:00'];
+  
+  // Undo/Redo
+  undoStack: any[][] = [[]];
+  redoStack: any[][] = [];
+  
+  // Audio tools
+  currentAudioTool: any = null;
+  
+  // Export settings
+  exportSettings = {
+    format: 'mp4',
+    quality: '1080p',
+    frameRate: '30',
+    bitrate: 10
+  };
+  
   videoMetadata = {
     duration: 0,
     resolution: ''
@@ -57,6 +104,134 @@ export class ListMediasComponent implements OnInit {
     this.loadMedia();
   }
 
+  // Navigation methods
+  onNavClick(item: string): void {
+    this.activeNavItem = item;
+    
+    // Reset all panel states
+    this.isAudioPanelExpanded = false;
+    this.isEffectsPanelExpanded = false;
+    this.isTextPanelExpanded = false;
+    this.isCaptionsPanelExpanded = false;
+    
+    // Set active panel
+    switch (item) {
+      case 'audio':
+        this.isAudioPanelExpanded = true;
+        break;
+      case 'effects':
+        this.isEffectsPanelExpanded = true;
+        break;
+      case 'text':
+        this.isTextPanelExpanded = true;
+        break;
+      case 'captions':
+        this.isCaptionsPanelExpanded = true;
+        break;
+    }
+  }
+
+  // Header actions
+  onHeaderButtonClick(buttonName: string): void {
+    switch (buttonName) {
+      case 'save-project':
+        this.showMessage('Project saved!', 'success');
+        break;
+      case 'new-project':
+        this.showMessage('New project created!', 'success');
+        break;
+      case 'export':
+        this.showExportModal = true;
+        break;
+      case 'share':
+        this.showMessage('Share link copied!', 'success');
+        break;
+      case 'settings':
+        this.showMessage('Settings opened!', 'info');
+        break;
+      default:
+        console.log(`Header button clicked: ${buttonName}`);
+    }
+  }
+
+  // Playback controls
+  togglePlayPause(): void {
+    this.isPlaying = !this.isPlaying;
+    this.showMessage(this.isPlaying ? 'Playing' : 'Paused');
+  }
+
+  // Timeline controls
+  zoomIn(): void {
+    if (this.zoomLevel < 400) {
+      this.zoomLevel += 25;
+      this.showMessage(`Zoomed in to ${this.zoomLevel}%`);
+    }
+  }
+
+  zoomOut(): void {
+    if (this.zoomLevel > 25) {
+      this.zoomLevel -= 25;
+      this.showMessage(`Zoomed out to ${this.zoomLevel}%`);
+    }
+  }
+
+  onTimelineZoomChange(): void {
+    // Update timeline zoom
+  }
+
+  fitTimelineToWindow(): void {
+    this.timelineZoom = 100;
+    this.showMessage('Timeline fitted to window');
+  }
+
+  // Clip management
+  splitAtCurrentTime(): void {
+    this.showMessage('Split at current time');
+  }
+
+  extractAudio(): void {
+    this.showMessage('Audio extracted');
+  }
+
+  deleteSelectedClip(): void {
+    this.showMessage('Clip deleted');
+  }
+
+  // Undo/Redo
+  undo(): void {
+    this.showMessage('Undid last action');
+  }
+
+  redo(): void {
+    this.showMessage('Redid last action');
+  }
+
+  // Video preview methods
+  closeVideoPreview(): void {
+    this.showVideoPreviewModal = false;
+    this.previewingVideo = null;
+  }
+
+  addVideoToTimeline(video: MediaDto): void {
+    this.showMessage(`Added "${video.title}" to timeline`);
+  }
+
+  // Audio tools
+  closeAudioToolsModal(): void {
+    this.showAudioToolsModal = false;
+    this.currentAudioTool = null;
+  }
+
+  // Export
+  closeExportModal(): void {
+    this.showExportModal = false;
+  }
+
+  performExport(): void {
+    this.showMessage('Starting export...', 'info');
+    this.showExportModal = false;
+  }
+
   loadMedia(): void {
     this.isLoading = true;
     this.mediasService.getList(this.input).subscribe({
@@ -65,6 +240,8 @@ export class ListMediasComponent implements OnInit {
         console.log('Media List API Response:', response);
         if (response && response.items) {
           this.media = response.items;
+          this.projectVideos = response.items;
+          this.filteredVideos = response.items;
           console.log('Loaded media items:', this.media.length);
           
           // Debug: Log each media item
@@ -326,6 +503,32 @@ export class ListMediasComponent implements OnInit {
 
   getLanguageName(languageCode: string): string {
     return this.languageMap[languageCode] || languageCode || 'Not specified';
+  }
+
+  // Getters for template
+  get formattedCurrentTime(): string {
+    return this.formatTime(this.currentTime);
+  }
+
+  get formattedTotalDuration(): string {
+    return this.formatTime(this.totalDuration);
+  }
+
+  get playButtonIcon(): string {
+    return this.isPlaying ? '⏸️' : '▶️';
+  }
+
+  formatTime(seconds: number): string {
+    if (!seconds || isNaN(seconds)) return '00:00';
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    if (hours > 0) {
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
 
   getUrlType(url: string): string {
