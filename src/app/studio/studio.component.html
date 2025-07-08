@@ -150,8 +150,8 @@
       <div class="view-controls">
         <span>100%</span>
         <i class="icon-arrow-down"></i>
-        <i class="icon-undo"></i>
-        <i class="icon-redo"></i>
+        <i class="icon-undo" (click)="undo()" title="Undo"></i>
+        <i class="icon-redo" (click)="redo()" title="Redo"></i>
       </div>
       <div class="export-section">
         <button class="export-button" (click)="onHeaderButtonClick('export')">
@@ -170,9 +170,9 @@
       <div class="video-player">
         <img src="assets/images/placeholders/800x450.png" alt="Video Playback" class="video-placeholder" />
         <div class="player-controls">
-          <i class="icon-play" (click)="onPlayerControlClick('play')"></i>
-          <span class="timecode">00:03:00</span>
-          <span class="duration">02:16:07</span>
+          <i class="icon-play" (click)="onPlayerControlClick('play')" [innerHTML]="playButtonIcon"></i>
+          <span class="timecode">{{ formattedCurrentTime }}</span>
+          <span class="duration">{{ formattedTotalDuration }}</span>
           <i class="icon-minus" (click)="onPlayerControlClick('minus')"></i>
           <i class="icon-plus" (click)="onPlayerControlClick('plus')"></i>
           <i class="icon-trash" (click)="onPlayerControlClick('trash')"></i>
@@ -198,12 +198,14 @@
             <ng-container *ngFor="let clip of clipsByTrack(trackNum)">
               <div
                 class="clip"
+                [class.selected]="selectedClipId === clip.id"
                 [class.retro-shake-3]="clip.effectType === 'retro-shake-3'"
                 [class.diamond-effect]="clip.effectType === 'diamond-effect'"
                 [class.play-day-effect]="clip.effectType === 'play-day-effect'"
                 [style.left.%]="(clip.startTime / 240) * 100"
                 [style.width.%]="((clip.endTime - clip.startTime) / 240) * 100"
-                (click)="cutClip(clip.id, clip.startTime + 10)"
+                (click)="selectClip(clip.id)"
+                (dblclick)="cutClip(clip.id, clip.startTime + (clip.duration / 2))"
                 (contextmenu)="splitClip(clip.id, clip.startTime + 20); $event.preventDefault()"
               >
                 <ng-container *ngIf="clip.type === 'effect'">
