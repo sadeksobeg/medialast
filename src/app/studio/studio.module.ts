@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule } from '@angular/cdk/drag-drop'; // Import DragDropModule
+import { RouterModule } from '@angular/router'; // Import RouterModule
 import { MediaService } from '../proxy/medias/media.service'; // Import MediaService
 
 import { StudioRoutingModule } from './studio-routing.module';
@@ -15,6 +16,7 @@ import { StudioActionButtonComponent } from './studio-action-button/studio-actio
   ],
   imports: [
     CommonModule,
+    RouterModule,
     StudioRoutingModule,
     StudioActionButtonComponent,
     DragDropModule,

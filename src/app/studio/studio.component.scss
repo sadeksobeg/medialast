@@ -379,6 +379,17 @@
       overflow: hidden; /* Hide overflowing content */
       white-space: nowrap; /* Prevent text wrapping */
       text-overflow: ellipsis; /* Add ellipsis for overflowing text */
+      transition: all 0.2s ease;
+
+      &.selected {
+        border: 2px solid #ffd700;
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+      }
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+      }
 
       &.retro-shake-3 {
         background-color: #6f42c1;
@@ -398,6 +409,31 @@
           border-radius: 3px;
         }
       }
+    }
+  }
+}
+
+// Enhanced button hover effects
+.top-header {
+  i {
+    transition: all 0.2s ease;
+    padding: 8px;
+    border-radius: 4px;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      transform: scale(1.1);
+    }
+  }
+}
+
+.player-controls {
+  i {
+    transition: all 0.2s ease;
+    
+    &:hover {
+      transform: scale(1.2);
+      color: #007bff !important;
     }
   }
 }
