@@ -26,6 +26,101 @@
       ></textarea>
     </div>
 
+    <!-- Video Upload Section -->
+    <div class="form-group">
+      <label>Video Upload *</label>
+      <div class="video-upload-section">
+        <div 
+          class="video-upload-area" 
+          [class.dragover]="isDragOver"
+          [class.has-video]="uploadedVideoUrl || selectedVideoFile"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
+          (drop)="onDrop($event)"
+          (click)="fileInput.click()"
+        >
+          <input 
+            type="file" 
+            #fileInput 
+            style="display: none;" 
+            accept="video/*"
+            (change)="onVideoFileSelected($event)"
+          />
+          
+          <!-- Upload State -->
+          <div *ngIf="!uploadedVideoUrl && !selectedVideoFile && !isUploading" class="upload-placeholder">
+            <div class="upload-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                <path d="M12,11L8,15H10.5V19H13.5V15H16L12,11Z"/>
+              </svg>
+            </div>
+            <h3>Upload Video</h3>
+            <p>Drag and drop your video file here, or click to browse</p>
+            <div class="supported-formats">
+              <span>Supported formats: MP4, MOV, AVI, MKV</span>
+            </div>
+          </div>
+
+          <!-- Uploading State -->
+          <div *ngIf="isUploading" class="uploading-state">
+            <div class="upload-spinner"></div>
+            <h3>Uploading Video...</h3>
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="uploadProgress"></div>
+            </div>
+            <p>{{ uploadProgress }}% complete</p>
+          </div>
+
+          <!-- Video Preview -->
+          <div *ngIf="uploadedVideoUrl || selectedVideoFile" class="video-preview">
+            <video 
+              *ngIf="uploadedVideoUrl" 
+              [src]="uploadedVideoUrl" 
+              controls 
+              class="preview-video"
+              preload="metadata"
+            ></video>
+            <div *ngIf="selectedVideoFile && !uploadedVideoUrl" class="video-info">
+              <div class="video-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
+                </svg>
+              </div>
+              <div class="file-details">
+                <h4>{{ selectedVideoFile.name }}</h4>
+                <p>{{ formatFileSize(selectedVideoFile.size) }}</p>
+              </div>
+            </div>
+            <button 
+              type="button" 
+              class="remove-video-btn" 
+              (click)="removeVideo(); $event.stopPropagation()"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <div class="upload-tips">
+          <div class="tip">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z"/>
+            </svg>
+            <span>Maximum file size: 500MB</span>
+          </div>
+          <div class="tip">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4C16.42,4 20,7.58 20,12C20,13.85 19.37,15.55 18.31,16.9L7.1,5.69C8.45,4.63 10.15,4 12,4M12,20C8.58,20 5,16.42 5,12C5,10.15 5.63,8.45 6.69,7.1L17.9,18.31C16.55,19.37 14.85,20 12,20Z"/>
+            </svg>
+            <span>For best quality, use 1080p or higher resolution</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="form-group">
       <label for="projectId">Project *</label>
       <div class="project-select-container">
@@ -124,10 +219,10 @@
       <button 
         type="submit" 
         class="btn submit-btn"
-        [disabled]="!mediaForm.form.valid || isLoadingProjects"
+        [disabled]="!mediaForm.form.valid || isLoadingProjects || isUploading || (!selectedVideoFile && !uploadedVideoUrl)"
       >
-        <span *ngIf="!isLoadingProjects">Create Media</span>
-        <span *ngIf="isLoadingProjects">Loading...</span>
+        <span *ngIf="!isUploading">Create Media</span>
+        <span *ngIf="isUploading">Uploading...</span>
       </button>
     </div>
   </form>
