@@ -31,6 +31,7 @@
 
 .search-bar {
   margin-bottom: 25px;
+  
   input {
     width: 100%;
     padding: 10px 15px;
@@ -41,14 +42,17 @@
     font-size: 0.9rem;
     margin-bottom: 10px;
     box-sizing: border-box;
+    
     &::placeholder {
       color: #888;
     }
   }
+  
   .search-tags {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    
     .tag {
       background-color: #333;
       color: #bbb;
@@ -57,6 +61,7 @@
       font-size: 0.8rem;
       cursor: pointer;
       transition: background-color 0.2s ease;
+      
       &:hover {
         background-color: #444;
       }
@@ -66,11 +71,13 @@
 
 .main-nav {
   flex-grow: 1;
+  
   ul {
     list-style: none;
     padding: 0;
     margin: 0;
   }
+  
   .nav-item {
     display: flex;
     align-items: center;
@@ -79,17 +86,21 @@
     border-radius: 8px;
     cursor: pointer;
     transition: background-color 0.2s ease, color 0.2s ease;
+    
     &:hover {
       background-color: #2a2a2a;
     }
+    
     &.active {
       background-color: #2a2a2a;
       color: #fff;
     }
+    
     i {
       margin-right: 12px;
-      font-size: 1.2rem; /* Placeholder for actual icons */
+      font-size: 1.2rem;
     }
+    
     span {
       font-size: 0.95rem;
       font-weight: 500;
@@ -127,17 +138,21 @@
 .icon-trash::before { content: '🗑️'; }
 .icon-volume::before { content: '🔊'; }
 .icon-effect::before { content: '💫'; }
+.icon-eye::before { content: '👁️'; }
+.icon-close::before { content: '❌'; }
 
-
+.videos-panel,
 .effects-panel {
-  display: none; /* Hidden by default, shown when .expanded */
+  display: none;
   padding-left: 10px;
   margin-top: 10px;
   border-top: 1px solid #2a2a2a;
   padding-top: 15px;
 
+  .videos-category,
   .effects-category {
     margin-bottom: 20px;
+    
     h4 {
       color: #bbb;
       font-size: 0.85rem;
@@ -147,11 +162,13 @@
     }
   }
 
+  .video-grid,
   .effect-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     gap: 15px;
 
+    .video-card,
     .effect-card {
       background-color: #222;
       border-radius: 8px;
@@ -160,10 +177,58 @@
       padding: 10px;
       cursor: pointer;
       transition: background-color 0.2s ease, transform 0.2s ease;
+      position: relative;
+      
       &:hover {
         background-color: #333;
         transform: translateY(-2px);
       }
+      
+      .video-thumbnail {
+        width: 80px;
+        height: 60px;
+        border-radius: 5px;
+        overflow: hidden;
+        margin-bottom: 8px;
+        background-color: #333;
+        position: relative;
+        
+        video {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        
+        .no-video-thumbnail {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+          color: #666;
+        }
+        
+        .play-overlay {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: rgba(0, 0, 0, 0.7);
+          border-radius: 50%;
+          width: 30px;
+          height: 30px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0;
+          transition: opacity 0.2s ease;
+        }
+        
+        &:hover .play-overlay {
+          opacity: 1;
+        }
+      }
+      
       img {
         width: 80px;
         height: 80px;
@@ -171,6 +236,8 @@
         object-fit: cover;
         margin-bottom: 8px;
       }
+      
+      .video-title,
       span {
         font-size: 0.75rem;
         color: #e0e0e0;
@@ -178,6 +245,51 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+      }
+      
+      .video-actions {
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+        margin-top: 5px;
+        
+        .action-btn {
+          background: #444;
+          border: none;
+          color: #fff;
+          padding: 4px 8px;
+          border-radius: 3px;
+          cursor: pointer;
+          font-size: 0.7rem;
+          
+          &:hover {
+            background: #555;
+          }
+        }
+      }
+    }
+  }
+  
+  .no-videos-message {
+    text-align: center;
+    color: #666;
+    padding: 20px;
+    
+    p {
+      margin: 5px 0;
+    }
+    
+    .btn-create-media {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+      
+      &:hover {
+        background: #0056b3;
       }
     }
   }
@@ -213,9 +325,12 @@
 
   .project-actions {
     font-weight: 500;
+    
     span {
       color: #fff;
+      cursor: pointer;
     }
+    
     i {
       cursor: pointer;
     }
@@ -226,9 +341,18 @@
       font-weight: 500;
       color: #fff;
     }
+    
     i {
       cursor: pointer;
       font-size: 1.1rem;
+      transition: all 0.2s ease;
+      padding: 8px;
+      border-radius: 4px;
+      
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        transform: scale(1.1);
+      }
     }
   }
 
@@ -246,17 +370,21 @@
       font-size: 0.9rem;
       font-weight: 600;
       transition: background-color 0.2s ease;
+      
       &:hover {
         background-color: #0056b3;
       }
+      
       i {
         font-size: 1.1rem;
       }
     }
+    
     i {
       cursor: pointer;
       font-size: 1.1rem;
     }
+    
     .user-avatar {
       width: 30px;
       height: 30px;
@@ -285,6 +413,12 @@
   margin: 20px;
   border-radius: 10px;
 
+  .video-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
   .video-placeholder {
     width: 100%;
     height: 100%;
@@ -308,11 +442,19 @@
     i {
       cursor: pointer;
       font-size: 1.2rem;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        transform: scale(1.2);
+        color: #007bff !important;
+      }
     }
+    
     .timecode {
       font-weight: bold;
       color: #007bff;
     }
+    
     .duration {
       color: #bbb;
     }
@@ -320,7 +462,7 @@
 }
 
 .timeline {
-  height: 250px; /* Fixed height for timeline */
+  height: 250px;
   background-color: #121212;
   border-top: 1px solid #2a2a2a;
   padding: 15px 20px;
@@ -333,7 +475,8 @@
 .timeline-header {
   display: flex;
   justify-content: space-between;
-  padding-right: 100px; /* Adjust based on actual timeline width */
+  padding-right: 100px;
+  
   .time-marker {
     color: #888;
     font-size: 0.8rem;
@@ -345,7 +488,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding-bottom: 10px; /* Space for scrollbar */
+  padding-bottom: 10px;
 
   .track {
     display: flex;
@@ -355,7 +498,7 @@
     min-height: 50px;
     padding: 5px;
     gap: 10px;
-    position: relative; /* For positioning clips */
+    position: relative;
 
     i.icon-volume {
       font-size: 1.1rem;
@@ -364,8 +507,8 @@
     }
 
     .clip {
-      position: absolute; /* Position clips absolutely within their track */
-      height: 40px; /* Fixed height for clips */
+      position: absolute;
+      height: 40px;
       background-color: #007bff;
       color: #fff;
       padding: 8px 12px;
@@ -376,9 +519,9 @@
       font-size: 0.85rem;
       cursor: grab;
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-      overflow: hidden; /* Hide overflowing content */
-      white-space: nowrap; /* Prevent text wrapping */
-      text-overflow: ellipsis; /* Add ellipsis for overflowing text */
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
       transition: all 0.2s ease;
 
       &.selected {
@@ -394,56 +537,208 @@
       &.retro-shake-3 {
         background-color: #6f42c1;
       }
+      
       &.diamond-effect {
         background-color: #e83e8c;
       }
+      
       &.play-day-effect {
         background-color: #20c997;
       }
-      .video-clip {
-        padding: 0;
-        img {
-          width: 100%;
-          height: 40px;
-          object-fit: cover;
-          border-radius: 3px;
+      
+      img {
+        width: 100%;
+        height: 40px;
+        object-fit: cover;
+        border-radius: 3px;
+      }
+    }
+  }
+}
+
+// Video Preview Modal
+.video-preview-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  
+  &.active {
+    opacity: 1;
+    visibility: visible;
+  }
+  
+  .modal-content {
+    background: #1a1a1a;
+    border-radius: 12px;
+    max-width: 90vw;
+    max-height: 90vh;
+    width: 800px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 1px solid #333;
+      
+      h3 {
+        margin: 0;
+        color: #fff;
+      }
+      
+      .close-btn {
+        background: none;
+        border: none;
+        color: #666;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 50%;
+        
+        &:hover {
+          background-color: #333;
+          color: #fff;
+        }
+      }
+    }
+    
+    .modal-body {
+      padding: 20px;
+      flex: 1;
+      
+      .preview-video {
+        width: 100%;
+        max-height: 400px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+      }
+      
+      .video-info {
+        color: #ccc;
+        
+        p {
+          margin: 10px 0;
+        }
+      }
+    }
+    
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 20px;
+      border-top: 1px solid #333;
+      
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        
+        &.btn-secondary {
+          background-color: #6c757d;
+          color: white;
+        }
+        
+        &.btn-primary {
+          background-color: #007bff;
+          color: white;
         }
       }
     }
   }
+}
+
+// Export Modal
+.export-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
   
-  .no-video-thumbnail {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    background: #333;
-    color: #666;
+  &.active {
+    opacity: 1;
+    visibility: visible;
   }
-}
-
-// Enhanced button hover effects
-.top-header {
-  i {
-    transition: all 0.2s ease;
-    padding: 8px;
-    border-radius: 4px;
+  
+  .modal-content {
+    background: #1a1a1a;
+    border-radius: 12px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90vw;
     
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-      transform: scale(1.1);
+    h3 {
+      color: #fff;
+      margin-bottom: 20px;
     }
-  }
-}
-
-.player-controls {
-  i {
-    transition: all 0.2s ease;
     
-    &:hover {
-      transform: scale(1.2);
-      color: #007bff !important;
+    .export-options {
+      .option-group {
+        margin-bottom: 20px;
+        
+        label {
+          display: block;
+          color: #ccc;
+          margin-bottom: 5px;
+        }
+        
+        select {
+          width: 100%;
+          padding: 8px;
+          border: 1px solid #444;
+          background: #333;
+          color: #fff;
+          border-radius: 4px;
+        }
+      }
+      
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+        
+        .btn-cancel,
+        .btn-export {
+          padding: 10px 20px;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+        }
+        
+        .btn-cancel {
+          background-color: #6c757d;
+          color: white;
+        }
+        
+        .btn-export {
+          background-color: #007bff;
+          color: white;
+        }
+      }
     }
   }
 }

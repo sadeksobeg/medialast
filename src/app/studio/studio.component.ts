@@ -59,6 +59,7 @@ export class StudioComponent implements OnInit {
   // Navigation state
   activeNavItem: string = 'media';
   isMediaPanelExpanded: boolean = true;
+  isVideosPanelExpanded: boolean = true;
   isAudioPanelExpanded: boolean = false;
   isEffectsPanelExpanded: boolean = false;
   isTextPanelExpanded: boolean = false;
@@ -333,6 +334,28 @@ export class StudioComponent implements OnInit {
   onTimeUpdate(event: Event): void {
     const video = event.target as HTMLVideoElement;
     this.currentTime = video.currentTime;
+  }
+
+  // Player control methods
+  onPlayerControlClick(action: string): void {
+    switch (action) {
+      case 'play':
+        this.togglePlayPause();
+        break;
+      case 'minus':
+        // Implement zoom out or other minus functionality
+        this.showMessage('Zoom out', 'info');
+        break;
+      case 'plus':
+        // Implement zoom in or other plus functionality
+        this.showMessage('Zoom in', 'info');
+        break;
+      case 'trash':
+        this.deleteSelectedClip();
+        break;
+      default:
+        console.log(`Player control: ${action}`);
+    }
   }
 
   // Timeline controls
