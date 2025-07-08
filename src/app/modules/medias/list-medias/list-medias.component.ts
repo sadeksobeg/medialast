@@ -81,4 +81,23 @@ export class ListMediasComponent implements OnInit {
       }
     });
   }
+
+  viewMedia(media: MediaDto): void {
+    // Create a modal or navigate to a detailed view
+    const details = `
+      Title: ${media.title}
+      Description: ${media.description || 'No description'}
+      Source Language: ${media.sourceLanguage || 'Not specified'}
+      Destination Language: ${media.destinationLanguage || 'Not specified'}
+      Country Dialect: ${media.countryDialect || 'Not specified'}
+    `;
+    
+    Swal.fire({
+      title: 'Media Details',
+      html: `<pre style="text-align: left; white-space: pre-wrap;">${details}</pre>`,
+      icon: 'info',
+      confirmButtonText: 'Close',
+      width: '500px'
+    });
+  }
 }

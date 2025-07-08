@@ -28,6 +28,21 @@ export class MediaBinComponent implements OnInit {
 
   onMediaClick(media: MediaDto): void {
     this.mediaSelected.emit(media);
+    console.log('Media selected:', media.title);
+  }
+
+  refreshMediaList(): void {
+    if (this.currentProjectId) {
+      this.mediaService.getProjectMedias(this.currentProjectId).subscribe({
+        next: (medias: MediaDto[]) => {
+          this.mediaItems = medias;
+          console.log('Media list refreshed');
+        },
+        error: (error) => {
+          console.error('Failed to refresh media list:', error);
+        }
+      });
+    }
   }
 
   deleteMedia(mediaId: string): void {

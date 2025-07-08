@@ -9,13 +9,19 @@ const routes: Routes = [
       path: '',
       pathMatch: 'full',
       component: ListProjectComponent,
-    },{
+    },
+    {
         path: 'create',
         component: CreateProjectComponent
-      },,{
+    },
+    {
         path: 'edit',
         component: EditProjectComponent
-      },
+    },
+    {
+        path: 'edit/:id',
+        component: EditProjectComponent
+    }
 ];
 
 @NgModule({

@@ -57,8 +57,31 @@ export class ListProjectComponent implements OnInit {
     this.router.navigateByUrl('/projects/create');
   }
   navigateToEdit(id: string): void {
-    this.router.navigate(['/projects/edit', id]); }
+    this.router.navigate(['/projects/edit', id]);
+  }
 
+  viewProject(project: ProjectDto): void {
+    const details = `
+      Title: ${project.title}
+      Description: ${project.description || 'No description'}
+      Created: ${project.creationTime ? new Date(project.creationTime).toLocaleDateString() : 'Unknown'}
+      Last Modified: ${project.lastModificationTime ? new Date(project.lastModificationTime).toLocaleDateString() : 'Unknown'}
+    `;
+    
+    Swal.fire({
+      title: 'Project Details',
+      html: `<pre style="text-align: left; white-space: pre-wrap;">${details}</pre>`,
+      icon: 'info',
+      confirmButtonText: 'Close',
+      showCancelButton: true,
+      cancelButtonText: 'Edit Project',
+      width: '500px'
+    }).then((result) => {
+      if (result.dismiss === Swal.DismissReason.cancel) {
+        this.navigateToEdit(project.id);
+      }
+    });
+  }
     deleteProject(id: string): void {
       Swal.fire({
         title: 'Are you sure?',

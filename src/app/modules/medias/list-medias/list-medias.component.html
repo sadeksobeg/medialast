@@ -18,6 +18,7 @@
         <span class="media-type">Type: {{ item.type }}</span>
         <div class="actions">
           <button class="btn edit-btn" [routerLink]="['/media/edit', item.id]">Edit</button>
+          <button class="btn view-btn" (click)="viewMedia(item)">View</button>
           <button class="btn delete-btn" (click)="deleteMedia(item.id)">Delete</button>
         </div>
       </div>

@@ -20,6 +20,7 @@
           <span class="project-status">Status: {{ project.status }}</span>
           <div class="actions">
             <button class="btn edit-btn" (click)="navigateToEdit(project.id)">Edit</button>
+            <button class="btn view-btn" (click)="viewProject(project)">View</button>
             <button class="btn delete-btn" (click)="deleteProject(project.id)">Delete</button>
           </div>
         </div>
