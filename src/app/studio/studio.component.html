@@ -29,7 +29,18 @@
                   (click)="selectVideoForTimeline(video)"
                 >
                   <div class="video-thumbnail">
-                    <video [src]="video.video" preload="metadata" muted></video>
+                    <video 
+                      *ngIf="video.video && video.video.trim() !== ''" 
+                      [src]="video.video" 
+                      preload="metadata" 
+                      muted
+                      (error)="onVideoThumbnailError($event, video)"
+                    ></video>
+                    <div *ngIf="!video.video || video.video.trim() === ''" class="no-video-thumbnail">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
+                      </svg>
+                    </div>
                     <div class="play-overlay">
                       <i class="icon-play"></i>
                     </div>
@@ -47,6 +58,7 @@
               </div>
               <div *ngIf="projectVideos.length === 0" class="no-videos-message">
                 <p>No videos in this project yet.</p>
+                <p><small>Debug: Total media loaded: {{ projectVideos.length }}</small></p>
                 <button class="btn-create-media" (click)="navigateToCreateMedia()">
                   <i class="icon-plus"></i>
                   Create New Media
