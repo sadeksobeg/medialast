@@ -1,0 +1,403 @@
+.studio-container {
+  display: flex;
+  height: 100vh;
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+  border-radius: 15px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.left-sidebar {
+  width: 280px;
+  background-color: #121212;
+  padding: 20px 15px;
+  border-right: 1px solid #2a2a2a;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  position: relative;
+  z-index: 10;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.search-bar {
+  margin-bottom: 25px;
+  input {
+    width: 100%;
+    padding: 10px 15px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    background-color: #222;
+    color: #e0e0e0;
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+    &::placeholder {
+      color: #888;
+    }
+  }
+  .search-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    .tag {
+      background-color: #333;
+      color: #bbb;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      &:hover {
+        background-color: #444;
+      }
+    }
+  }
+}
+
+.main-nav {
+  flex-grow: 1;
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    &:hover {
+      background-color: #2a2a2a;
+    }
+    &.active {
+      background-color: #2a2a2a;
+      color: #fff;
+    }
+    i {
+      margin-right: 12px;
+      font-size: 1.2rem; /* Placeholder for actual icons */
+    }
+    span {
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    &.expanded {
+      .effects-panel {
+        display: block;
+      }
+    }
+  }
+}
+
+/* Placeholder icons - replace with actual icon fonts or SVGs */
+.icon-videos::before { content: '🎥'; }
+.icon-photos::before { content: '📸'; }
+.icon-audio::before { content: '🎵'; }
+.icon-text::before { content: '📝'; }
+.icon-captions::before { content: '💬'; }
+.icon-transcript::before { content: '📄'; }
+.icon-effects::before { content: '✨'; }
+.icon-stickers::before { content: '🌟'; }
+.icon-format::before { content: '📐'; }
+.icon-cloud::before { content: '☁️'; }
+.icon-arrow-down::before { content: '🔽'; }
+.icon-undo::before { content: '↩️'; }
+.icon-redo::before { content: '↪️'; }
+.icon-export::before { content: '📤'; }
+.icon-check::before { content: '✅'; }
+.icon-bookmark::before { content: '🔖'; }
+.icon-dots::before { content: '•••'; }
+.icon-play::before { content: '▶️'; }
+.icon-minus::before { content: '➖'; }
+.icon-plus::before { content: '➕'; }
+.icon-trash::before { content: '🗑️'; }
+.icon-volume::before { content: '🔊'; }
+.icon-effect::before { content: '💫'; }
+
+
+.effects-panel {
+  display: none; /* Hidden by default, shown when .expanded */
+  padding-left: 10px;
+  margin-top: 10px;
+  border-top: 1px solid #2a2a2a;
+  padding-top: 15px;
+
+  .effects-category {
+    margin-bottom: 20px;
+    h4 {
+      color: #bbb;
+      font-size: 0.85rem;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+
+  .effect-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 15px;
+
+    .effect-card {
+      background-color: #222;
+      border-radius: 8px;
+      overflow: hidden;
+      text-align: center;
+      padding: 10px;
+      cursor: pointer;
+      transition: background-color 0.2s ease, transform 0.2s ease;
+      &:hover {
+        background-color: #333;
+        transform: translateY(-2px);
+      }
+      img {
+        width: 80px;
+        height: 80px;
+        border-radius: 5px;
+        object-fit: cover;
+        margin-bottom: 8px;
+      }
+      span {
+        font-size: 0.75rem;
+        color: #e0e0e0;
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
+  }
+}
+
+.main-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #1e1e1e;
+  overflow: hidden;
+}
+
+.top-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #121212;
+  border-bottom: 1px solid #2a2a2a;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+
+  .project-actions,
+  .view-controls,
+  .export-section {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: #bbb;
+    font-size: 0.9rem;
+  }
+
+  .project-actions {
+    font-weight: 500;
+    span {
+      color: #fff;
+    }
+    i {
+      cursor: pointer;
+    }
+  }
+
+  .view-controls {
+    span {
+      font-weight: 500;
+      color: #fff;
+    }
+    i {
+      cursor: pointer;
+      font-size: 1.1rem;
+    }
+  }
+
+  .export-section {
+    .export-button {
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: background-color 0.2s ease;
+      &:hover {
+        background-color: #0056b3;
+      }
+      i {
+        font-size: 1.1rem;
+      }
+    }
+    i {
+      cursor: pointer;
+      font-size: 1.1rem;
+    }
+    .user-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #007bff;
+    }
+  }
+}
+
+.video-timeline-section {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.video-player {
+  flex-grow: 1;
+  background-color: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  margin: 20px;
+  border-radius: 10px;
+
+  .video-placeholder {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .player-controls {
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 10px 20px;
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: #fff;
+    font-size: 0.9rem;
+
+    i {
+      cursor: pointer;
+      font-size: 1.2rem;
+    }
+    .timecode {
+      font-weight: bold;
+      color: #007bff;
+    }
+    .duration {
+      color: #bbb;
+    }
+  }
+}
+
+.timeline {
+  height: 250px; /* Fixed height for timeline */
+  background-color: #121212;
+  border-top: 1px solid #2a2a2a;
+  padding: 15px 20px;
+  overflow-x: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  padding-right: 100px; /* Adjust based on actual timeline width */
+  .time-marker {
+    color: #888;
+    font-size: 0.8rem;
+  }
+}
+
+.timeline-tracks {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 10px; /* Space for scrollbar */
+
+  .track {
+    display: flex;
+    align-items: center;
+    background-color: #222;
+    border-radius: 5px;
+    min-height: 50px;
+    padding: 5px;
+    gap: 10px;
+    position: relative; /* For positioning clips */
+
+    i.icon-volume {
+      font-size: 1.1rem;
+      color: #bbb;
+      margin-left: 5px;
+    }
+
+    .clip {
+      position: absolute; /* Position clips absolutely within their track */
+      height: 40px; /* Fixed height for clips */
+      background-color: #007bff;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      cursor: grab;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+      overflow: hidden; /* Hide overflowing content */
+      white-space: nowrap; /* Prevent text wrapping */
+      text-overflow: ellipsis; /* Add ellipsis for overflowing text */
+
+      &.retro-shake-3 {
+        background-color: #6f42c1;
+      }
+      &.diamond-effect {
+        background-color: #e83e8c;
+      }
+      &.play-day-effect {
+        background-color: #20c997;
+      }
+      .video-clip {
+        padding: 0;
+        img {
+          width: 100%;
+          height: 40px;
+          object-fit: cover;
+          border-radius: 3px;
+        }
+      }
+    }
+  }
+}

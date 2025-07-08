@@ -1,0 +1,21 @@
+.media-bin-container {
+  padding: 10px;
+}
+
+.import-button {
+  background-color: #444;
+  color: #fff;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.media-list {
+  list-style: none;
+  padding: 0;
+}
+
+.media-list li {
+  padding: 5px;
+  border-bottom: 1px solid #444;
+}

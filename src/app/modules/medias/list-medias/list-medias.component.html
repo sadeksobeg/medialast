@@ -1,0 +1,30 @@
+<div class="media-list-container">
+  <div class="header">
+    <h2>Media List</h2>
+    <button class="btn create-btn" [routerLink]="['/media/create']">Create Media</button>
+  </div>
+
+  <div *ngIf="media.length === 0" class="no-media-message">
+    No media found.
+  </div>
+
+  <div *ngIf="media.length > 0" class="media-grid">
+    <div *ngFor="let item of media" class="media-card">
+      <div class="card-content">
+        <h3 class="media-title">{{ item.title }}</h3>
+        <p class="media-description">{{ item.description }}</p>
+      </div>
+      <div class="card-footer">
+        <span class="media-type">Type: {{ item.type }}</span>
+        <div class="actions">
+          <button class="btn edit-btn" [routerLink]="['/media/edit', item.id]">Edit</button>
+          <button class="btn delete-btn" (click)="deleteMedia(item.id)">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="load-more-container" *ngIf="media.length > 0">
+    <button class="btn load-more-btn" (click)="loadMore()">Load More</button>
+  </div>
+</div>

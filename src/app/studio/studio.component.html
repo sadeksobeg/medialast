@@ -1,0 +1,252 @@
+<div class="studio-container">
+  <!-- Left Sidebar -->
+  <div class="left-sidebar">
+    <div class="logo">Video Editor</div>
+    <div class="search-bar">
+      <input type="text" placeholder="Search effects" />
+      <div class="search-tags">
+        <span class="tag">blur</span>
+        <span class="tag">zoom</span>
+        <span class="tag">retro</span>
+        <span class="tag">shake</span>
+        <span class="tag">rainbow</span>
+      </div>
+    </div>
+    <nav class="main-nav">
+      <ul>
+        <li class="nav-item" [class.active]="activeNavItem === 'videos'" (click)="onNavClick('videos')">
+          <i class="icon-videos"></i>
+          <span>VIDEOS</span>
+        </li>
+        <li class="nav-item" [class.active]="activeNavItem === 'photos'" (click)="onNavClick('photos')">
+          <i class="icon-photos"></i>
+          <span>PHOTOS</span>
+        </li>
+        <li class="nav-item" [class.active]="activeNavItem === 'audio'" (click)="onNavClick('audio')">
+          <i class="icon-audio"></i>
+          <span>AUDIO</span>
+        </li>
+        <li class="nav-item" [class.active]="activeNavItem === 'text'" (click)="onNavClick('text')">
+          <i class="icon-text"></i>
+          <span>TEXT</span>
+        </li>
+        <li class="nav-item" [class.active]="activeNavItem === 'captions'" (click)="onNavClick('captions')">
+          <i class="icon-captions"></i>
+          <span>CAPTIONS</span>
+        </li>
+        <li class="nav-item" [class.active]="activeNavItem === 'transcript'" (click)="onNavClick('transcript')">
+          <i class="icon-transcript"></i>
+          <span>TRANSCRIPT</span>
+        </li>
+        <li class="nav-item" [class.active]="activeNavItem === 'effects'" [class.expanded]="isEffectsPanelExpanded" (click)="onNavClick('effects')">
+          <i class="icon-effects"></i>
+          <span>EFFECTS</span>
+          <div class="effects-panel" *ngIf="isEffectsPanelExpanded">
+            <div class="effects-category">
+              <h4>TRENDING</h4>
+              <div class="effect-grid">
+                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Sharpen Ed...', type: 'effect', effectType: 'sharpen-edge' }">
+                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+                  <span>Sharpen Ed...</span>
+                </div>
+                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Spooky Night', type: 'effect', effectType: 'spooky-night' }">
+                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+                  <span>Spooky Night</span>
+                </div>
+                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Retro Shake', type: 'effect', effectType: 'retro-shake' }">
+                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+                  <span>Retro Shake</span>
+                </div>
+                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Auto Style', type: 'effect', effectType: 'auto-style' }">
+                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+                  <span>Auto Style</span>
+                </div>
+                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Dark Night', type: 'effect', effectType: 'dark-night' }">
+                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+                  <span>Dark Night</span>
+                </div>
+                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Diamond', type: 'effect', effectType: 'diamond' }">
+                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+                  <span>Diamond</span>
+                </div>
+                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Multi Pass', type: 'effect', effectType: 'multi-pass' }">
+                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+                  <span>Multi Pass</span>
+                </div>
+                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Bright Camera', type: 'effect', effectType: 'bright-camera' }">
+                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+                  <span>Bright Camera</span>
+                </div>
+                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Macbook Head', type: 'effect', effectType: 'macbook-head' }">
+                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+                  <span>Macbook Head</span>
+                </div>
+                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Play Day', type: 'effect', effectType: 'play-day' }">
+                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+                  <span>Play Day</span>
+                </div>
+                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Cartoon Style', type: 'effect', effectType: 'cartoon-style' }">
+                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+                  <span>Cartoon Style</span>
+                </div>
+                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Second Water', type: 'effect', effectType: 'second-water' }">
+                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+                  <span>Second Water</span>
+                </div>
+              </div>
+            </div>
+            <div class="effects-category">
+              <h4>FOR YOU</h4>
+              <div class="effect-grid">
+                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Betamax', type: 'effect', effectType: 'betamax' }">
+                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+                  <span>Betamax</span>
+                </div>
+                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Low Quality', type: 'effect', effectType: 'low-quality' }">
+                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+                  <span>Low Quality</span>
+                </div>
+                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Retro Shake 2', type: 'effect', effectType: 'retro-shake-2' }">
+                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+                  <span>Retro Shake 2</span>
+                </div>
+                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Dizzy', type: 'effect', effectType: 'dizzy' }">
+                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+                  <span>Dizzy</span>
+                </div>
+                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Retro Shake 3', type: 'effect', effectType: 'retro-shake-3' }">
+                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+                  <span>Retro Shake 3</span>
+                </div>
+                <div class="effect-card" cdkDrag [cdkDragData]="{ name: 'Red Head', type: 'effect', effectType: 'red-head' }">
+                  <img src="assets/images/placeholders/80x80.png" alt="Effect Thumbnail" />
+                  <span>Red Head</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li class="nav-item" [class.active]="activeNavItem === 'stickers'" (click)="onNavClick('stickers')">
+          <i class="icon-stickers"></i>
+          <span>STICKERS</span>
+        </li>
+        <li class="nav-item" [class.active]="activeNavItem === 'format'" (click)="onNavClick('format')">
+          <i class="icon-format"></i>
+          <span>FORMAT</span>
+        </li>
+      </ul>
+    </nav>
+  </div>
+
+  <!-- Main Content Area -->
+  <div class="main-content">
+    <!-- Top Header -->
+    <div class="top-header">
+      <div class="project-actions">
+        <i class="icon-cloud" (click)="onHeaderButtonClick('save-project')"></i>
+        <span (click)="onHeaderButtonClick('new-project')">{{ currentProjectName }}</span>
+        <i class="icon-arrow-down"></i>
+      </div>
+      <div class="view-controls">
+        <span>100%</span>
+        <i class="icon-arrow-down"></i>
+        <i class="icon-undo"></i>
+        <i class="icon-redo"></i>
+      </div>
+      <div class="export-section">
+        <button class="export-button" (click)="onHeaderButtonClick('export')">
+          <i class="icon-export"></i>
+          <span>EXPORT</span>
+        </button>
+        <i class="icon-check" (click)="onHeaderButtonClick('check')"></i>
+        <i class="icon-bookmark" (click)="onHeaderButtonClick('bookmark')"></i>
+        <i class="icon-dots" (click)="onHeaderButtonClick('dots')"></i>
+        <img src="https://via.placeholder.com/30x30" alt="User Avatar" class="user-avatar" />
+      </div>
+    </div>
+
+    <!-- Video Player and Timeline -->
+    <div class="video-timeline-section">
+      <div class="video-player">
+        <img src="assets/images/placeholders/800x450.png" alt="Video Playback" class="video-placeholder" />
+        <div class="player-controls">
+          <i class="icon-play" (click)="onPlayerControlClick('play')"></i>
+          <span class="timecode">00:03:00</span>
+          <span class="duration">02:16:07</span>
+          <i class="icon-minus" (click)="onPlayerControlClick('minus')"></i>
+          <i class="icon-plus" (click)="onPlayerControlClick('plus')"></i>
+          <i class="icon-trash" (click)="onPlayerControlClick('trash')"></i>
+        </div>
+      </div>
+      <div class="timeline">
+        <div class="timeline-header">
+          <span class="time-marker">00:00</span>
+          <span class="time-marker">01:00</span>
+          <span class="time-marker">02:00</span>
+          <span class="time-marker">03:00</span>
+          <span class="time-marker">04:00</span>
+        </div>
+        <div class="timeline-tracks">
+          <div
+            class="track"
+            *ngFor="let trackNum of [0, 1, 2, 3]"
+            cdkDropList
+            [cdkDropListData]="trackNum"
+            (cdkDropListDropped)="drop($event)"
+          >
+            <i class="icon-volume"></i>
+            <ng-container *ngFor="let clip of clipsByTrack(trackNum)">
+              <div
+                class="clip"
+                [class.retro-shake-3]="clip.effectType === 'retro-shake-3'"
+                [class.diamond-effect]="clip.effectType === 'diamond-effect'"
+                [class.play-day-effect]="clip.effectType === 'play-day-effect'"
+                [style.left.%]="(clip.startTime / 240) * 100"
+                [style.width.%]="((clip.endTime - clip.startTime) / 240) * 100"
+                (click)="cutClip(clip.id, clip.startTime + 10)"
+                (contextmenu)="splitClip(clip.id, clip.startTime + 20); $event.preventDefault()"
+              >
+                <ng-container *ngIf="clip.type === 'effect'">
+                  <i class="icon-effect"></i>
+                  <span>{{ clip.name }}</span>
+                </ng-container>
+                <ng-container *ngIf="clip.type === 'video'">
+                  <img [src]="clip.src" alt="Video Clip" />
+                </ng-container>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Export Modal -->
+    <div class="export-modal" [class.active]="showExportModal">
+      <div class="modal-content">
+        <h3>Export Settings</h3>
+        <div class="export-options">
+          <div class="option-group">
+            <label>Format</label>
+            <select>
+              <option>MP4</option>
+              <option>MOV</option>
+              <option>AVI</option>
+            </select>
+          </div>
+          <div class="option-group">
+            <label>Quality</label>
+            <select>
+              <option>High</option>
+              <option>Medium</option>
+              <option>Low</option>
+            </select>
+          </div>
+          <div class="modal-actions">
+            <button class="btn-cancel" (click)="closeExportModal()">Cancel</button>
+            <button class="btn-export" (click)="performExport()">Export</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

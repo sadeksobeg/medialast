@@ -1,0 +1,72 @@
+<div class="create-media-container">
+  <h2>Create New Media</h2>
+  <form (ngSubmit)="submit()" #mediaForm="ngForm">
+    <div class="form-group">
+      <label for="title">Title</label>
+      <input
+        type="text"
+        id="title"
+        name="title"
+        [(ngModel)]="media.title"
+        required
+        class="form-control"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea
+        id="description"
+        name="description"
+        [(ngModel)]="media.description"
+        class="form-control"
+      ></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="projectId">Project ID</label>
+      <input
+        type="text"
+        id="projectId"
+        name="projectId"
+        [(ngModel)]="media.projectId"
+        class="form-control"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="sourceLanguage">Source Language</label>
+      <input
+        type="text"
+        id="sourceLanguage"
+        name="sourceLanguage"
+        [(ngModel)]="media.sourceLanguage"
+        class="form-control"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="destinationLanguage">Destination Language</label>
+      <input
+        type="text"
+        id="destinationLanguage"
+        name="destinationLanguage"
+        [(ngModel)]="media.destinationLanguage"
+        class="form-control"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="countryDialect">Country Dialect</label>
+      <input
+        type="text"
+        id="countryDialect"
+        name="countryDialect"
+        [(ngModel)]="media.countryDialect"
+        class="form-control"
+      />
+    </div>
+
+    <button type="submit" class="btn submit-btn">Create Media</button>
+  </form>
+</div>
