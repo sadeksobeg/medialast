@@ -1,8 +1,9 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, OnDestroy } from '@angular/core';
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { MediaService } from '../proxy/medias/media.service';
 import { MediaDto } from '../proxy/medias/models';
 import { Router } from '@angular/router';
+import { trigger, state, style, transition, animate } from '@angular/animations';
 
 // Enhanced interfaces for professional video editing
 interface Clip {
@@ -92,23 +93,56 @@ interface Toast {
   selector: 'app-studio',
   standalone: false,
   templateUrl: './studio.component.html',
-  styleUrl: './studio.component.scss'
+  styleUrl: './studio.component.scss',
+  animations: [
+    trigger('slideIn', [
+      transition(':enter', [
+        style({ transform: 'translateX(100%)', opacity: 0 }),
+        animate('300ms ease-in-out', style({ transform: 'translateX(0)', opacity: 1 }))
+      ]),
+      transition(':leave', [
+        animate('300ms ease-in-out', style({ transform: 'translateX(100%)', opacity: 0 }))
+      ])
+    ])
+  ]
 })
-export class StudioComponent implements OnInit {
+export class StudioComponent implements OnInit, OnDestroy {
   @ViewChild('videoPlayer') videoPlayer!: ElementRef<HTMLVideoElement>;
 
   // UI State
   sidebarCollapsed: boolean = false;
   inspectorCollapsed: boolean = false;
   activeTab: string = 'media';
+  isLoading: boolean = false;
+  loadingMessage: string = '';
   
   // Navigation
   navTabs: NavTab[] = [
-    { id: 'media', label: 'Media', icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8,5.14V19.14L19,12.14L8,5.14Z"/></svg>' },
-    { id: 'effects', label: 'Effects', icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2Z"/></svg>' },
-    { id: 'text', label: 'Text', icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18.5,4L19.66,8.35L18.7,8.61C18.25,7.74 17.79,6.87 17.26,6.43C16.73,6 16.11,6 15.5,6H13V16.5C13,17 13,17.5 13.5,17.5H14V19H10V17.5H10.5C11,17.5 11,17 11,16.5V6H8.5C7.89,6 7.27,6 6.74,6.43C6.21,6.87 5.75,7.74 5.3,8.61L4.34,8.35L5.5,4H18.5Z"/></svg>' },
-    { id: 'audio', label: 'Audio', icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/></svg>' },
-    { id: 'captions', label: 'Captions', icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18,11H16.5V10.5C16.5,9.95 16.05,9.5 15.5,9.5C14.95,9.5 14.5,9.95 14.5,10.5V13.5C14.5,14.05 14.95,14.5 15.5,14.5C16.05,14.5 16.5,14.05 16.5,13.5V13H18V13.5A2.5,2.5 0 0,1 15.5,16A2.5,2.5 0 0,1 13,13.5V10.5A2.5,2.5 0 0,1 15.5,8A2.5,2.5 0 0,1 18,10.5V11M11,11H9.5V10.5C9.5,9.95 9.05,9.5 8.5,9.5C7.95,9.5 7.5,9.95 7.5,10.5V13.5C7.5,14.05 7.95,14.5 8.5,14.5C9.05,14.5 9.5,14.05 9.5,13.5V13H11V13.5A2.5,2.5 0 0,1 8.5,16A2.5,2.5 0 0,1 6,13.5V10.5A2.5,2.5 0 0,1 8.5,8A2.5,2.5 0 0,1 11,10.5V11M7,4A2,2 0 0,0 5,6V18A2,2 0 0,0 7,20H17A2,2 0 0,0 19,18V6A2,2 0 0,0 17,4H7Z"/></svg>' }
+    { 
+      id: 'media', 
+      label: 'Media', 
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8,5.14V19.14L19,12.14L8,5.14Z"/></svg>' 
+    },
+    { 
+      id: 'effects', 
+      label: 'Effects', 
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2Z"/></svg>' 
+    },
+    { 
+      id: 'text', 
+      label: 'Text', 
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.5,4L19.66,8.35L18.7,8.61C18.25,7.74 17.79,6.87 17.26,6.43C16.73,6 16.11,6 15.5,6H13V16.5C13,17 13,17.5 13.5,17.5H14V19H10V17.5H10.5C11,17.5 11,17 11,16.5V6H8.5C7.89,6 7.27,6 6.74,6.43C6.21,6.87 5.75,7.74 5.3,8.61L4.34,8.35L5.5,4H18.5Z"/></svg>' 
+    },
+    { 
+      id: 'audio', 
+      label: 'Audio', 
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/></svg>' 
+    },
+    { 
+      id: 'captions', 
+      label: 'Captions', 
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18,11H16.5V10.5C16.5,9.95 16.05,9.5 15.5,9.5C14.95,9.5 14.5,9.95 14.5,10.5V13.5C14.5,14.05 14.95,14.5 15.5,14.5C16.05,14.5 16.5,14.05 16.5,13.5V13H18V13.5A2.5,2.5 0 0,1 15.5,16A2.5,2.5 0 0,1 13,13.5V10.5A2.5,2.5 0 0,1 15.5,8A2.5,2.5 0 0,1 18,10.5V11Z"/></svg>' 
+    }
   ];
 
   // Search and filtering
@@ -152,12 +186,48 @@ export class StudioComponent implements OnInit {
 
   // Effects and templates
   videoEffects: Effect[] = [
-    { id: '1', name: 'Blur', type: 'blur', thumbnail: 'https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=1', category: 'blur' },
-    { id: '2', name: 'Sharpen', type: 'sharpen', thumbnail: 'https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=1', category: 'color' },
-    { id: '3', name: 'Vintage', type: 'vintage', thumbnail: 'https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=1', category: 'artistic' },
-    { id: '4', name: 'Glow', type: 'glow', thumbnail: 'https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=1', category: 'artistic' },
-    { id: '5', name: 'Zoom', type: 'zoom', thumbnail: 'https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=1', category: 'distortion' },
-    { id: '6', name: 'Shake', type: 'shake', thumbnail: 'https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=1', category: 'distortion' }
+    { 
+      id: '1', 
+      name: 'Blur', 
+      type: 'blur', 
+      thumbnail: 'https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=1', 
+      category: 'blur' 
+    },
+    { 
+      id: '2', 
+      name: 'Sharpen', 
+      type: 'sharpen', 
+      thumbnail: 'https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=1', 
+      category: 'color' 
+    },
+    { 
+      id: '3', 
+      name: 'Vintage', 
+      type: 'vintage', 
+      thumbnail: 'https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=1', 
+      category: 'artistic' 
+    },
+    { 
+      id: '4', 
+      name: 'Glow', 
+      type: 'glow', 
+      thumbnail: 'https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=1', 
+      category: 'artistic' 
+    },
+    { 
+      id: '5', 
+      name: 'Zoom', 
+      type: 'zoom', 
+      thumbnail: 'https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=1', 
+      category: 'distortion' 
+    },
+    { 
+      id: '6', 
+      name: 'Shake', 
+      type: 'shake', 
+      thumbnail: 'https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=1', 
+      category: 'distortion' 
+    }
   ];
 
   titleTemplates: TitleTemplate[] = [
@@ -167,14 +237,31 @@ export class StudioComponent implements OnInit {
   ];
 
   audioTools: AudioTool[] = [
-    { type: 'extract-voice', name: 'Extract Voice', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z"/></svg>' },
-    { type: 'remove-background', name: 'Remove BG Audio', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/></svg>' },
-    { type: 'noise-reduction', name: 'Noise Reduction', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/></svg>' },
-    { type: 'audio-mixer', name: 'Audio Mixer', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H7A2,2 0 0,0 9,19V5A2,2 0 0,0 7,3M7,19H5V5H7V19M12,3H10A2,2 0 0,0 8,5V19A2,2 0 0,0 10,21H12A2,2 0 0,0 14,19V5A2,2 0 0,0 12,3M12,19H10V5H12V19M19,3H17A2,2 0 0,0 15,5V19A2,2 0 0,0 17,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H17V5H19V19Z"/></svg>' }
+    { 
+      type: 'extract-voice', 
+      name: 'Extract Voice', 
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z"/></svg>' 
+    },
+    { 
+      type: 'remove-background', 
+      name: 'Remove BG Audio', 
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/></svg>' 
+    },
+    { 
+      type: 'noise-reduction', 
+      name: 'Noise Reduction', 
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/></svg>' 
+    },
+    { 
+      type: 'audio-mixer', 
+      name: 'Audio Mixer', 
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H7A2,2 0 0,0 9,19V5A2,2 0 0,0 7,3M7,19H5V5H7V19M12,3H10A2,2 0 0,0 8,5V19A2,2 0 0,0 10,21H12A2,2 0 0,0 14,19V5A2,2 0 0,0 12,3M12,19H10V5H12V19M19,3H17A2,2 0 0,0 15,5V19A2,2 0 0,0 17,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H17V5H19V19Z"/></svg>' 
+    }
   ];
 
   // Toast notifications
   toasts: Toast[] = [];
+  private toastIdCounter = 0;
 
   constructor(
     private mediaService: MediaService,
@@ -187,6 +274,49 @@ export class StudioComponent implements OnInit {
   ngOnInit(): void {
     this.loadMedia();
     this.saveStateForUndo();
+    this.setupKeyboardShortcuts();
+  }
+
+  ngOnDestroy(): void {
+    this.removeKeyboardShortcuts();
+  }
+
+  // Keyboard shortcuts
+  private setupKeyboardShortcuts(): void {
+    document.addEventListener('keydown', this.handleKeyboardShortcuts.bind(this));
+  }
+
+  private removeKeyboardShortcuts(): void {
+    document.removeEventListener('keydown', this.handleKeyboardShortcuts.bind(this));
+  }
+
+  private handleKeyboardShortcuts(event: KeyboardEvent): void {
+    if (event.ctrlKey || event.metaKey) {
+      switch (event.key) {
+        case 'z':
+          event.preventDefault();
+          if (event.shiftKey) {
+            this.redo();
+          } else {
+            this.undo();
+          }
+          break;
+        case 'y':
+          event.preventDefault();
+          this.redo();
+          break;
+        case 's':
+          event.preventDefault();
+          this.saveProject();
+          break;
+      }
+    }
+    
+    // Spacebar for play/pause
+    if (event.code === 'Space' && event.target === document.body) {
+      event.preventDefault();
+      this.togglePlayPause();
+    }
   }
 
   // UI Methods
@@ -196,6 +326,11 @@ export class StudioComponent implements OnInit {
 
   toggleInspector(): void {
     this.inspectorCollapsed = !this.inspectorCollapsed;
+  }
+
+  toggleProjectDropdown(): void {
+    // Implement project dropdown logic
+    this.showToast('Project dropdown opened', 'info');
   }
 
   setActiveTab(tabId: string): void {
@@ -222,13 +357,18 @@ export class StudioComponent implements OnInit {
       const query = this.searchQuery.toLowerCase();
       this.filteredMedia = this.allMedia.filter(media =>
         media.title?.toLowerCase().includes(query) ||
-        media.description?.toLowerCase().includes(query)
+        media.description?.toLowerCase().includes(query) ||
+        media.sourceLanguage?.toLowerCase().includes(query) ||
+        media.destinationLanguage?.toLowerCase().includes(query)
       );
     }
   }
 
   // Media management
   loadMedia(): void {
+    this.isLoading = true;
+    this.loadingMessage = 'Loading media library...';
+    
     this.mediaService.getList({
       maxResultCount: 100,
       skipCount: 0,
@@ -239,10 +379,12 @@ export class StudioComponent implements OnInit {
           media.video && media.video.trim() !== ''
         ) || [];
         this.filterMedia();
+        this.isLoading = false;
         this.showToast('Media loaded successfully', 'success');
       },
       error: (error) => {
         console.error('Failed to load media:', error);
+        this.isLoading = false;
         this.showToast('Failed to load media', 'error');
       }
     });
@@ -258,50 +400,24 @@ export class StudioComponent implements OnInit {
     this.showToast(`Selected: ${media.title}`, 'info');
   }
 
+  onMediaThumbnailError(event: Event, media: MediaDto): void {
+    console.error('Media thumbnail failed to load:', media.title, media.video);
+    const videoElement = event.target as HTMLVideoElement;
+    videoElement.style.display = 'none';
+  }
+
   openImportDialog(): void {
     this.router.navigate(['/media/create']);
   }
 
   // Playback controls
   togglePlayPause(): void {
-    this.isPlaying = !this.isPlaying;
     if (this.videoPlayer?.nativeElement) {
       if (this.isPlaying) {
-        this.videoPlayer.nativeElement.play();
-      } else {
         this.videoPlayer.nativeElement.pause();
+      } else {
+        this.videoPlayer.nativeElement.play();
       }
-    }
-  }
-
-  seekTo(event: MouseEvent): void {
-    if (this.videoPlayer?.nativeElement) {
-      const rect = (event.target as HTMLElement).getBoundingClientRect();
-      const percent = (event.clientX - rect.left) / rect.width;
-      const newTime = percent * this.totalDuration;
-      this.videoPlayer.nativeElement.currentTime = newTime;
-      this.currentTime = newTime;
-    }
-  }
-
-  toggleMute(): void {
-    this.isMuted = !this.isMuted;
-    if (this.videoPlayer?.nativeElement) {
-      this.videoPlayer.nativeElement.muted = this.isMuted;
-    }
-  }
-
-  setVolume(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    this.volume = parseInt(target.value);
-    if (this.videoPlayer?.nativeElement) {
-      this.videoPlayer.nativeElement.volume = this.volume / 100;
-    }
-  }
-
-  setPlaybackSpeed(): void {
-    if (this.videoPlayer?.nativeElement) {
-      this.videoPlayer.nativeElement.playbackRate = this.playbackSpeed;
     }
   }
 
@@ -413,39 +529,14 @@ export class StudioComponent implements OnInit {
     // Open clip editor modal or inline editor
   }
 
-  splitClip(clip: Clip, time: number): void {
-    if (time > clip.startTime && time < clip.endTime) {
-      this.saveStateForUndo();
-      
-      const firstClip: Clip = {
-        ...clip,
-        id: `${clip.id}_part1`,
-        endTime: time,
-        duration: time - clip.startTime
-      };
-      
-      const secondClip: Clip = {
-        ...clip,
-        id: `${clip.id}_part2`,
-        startTime: time,
-        duration: clip.endTime - time
-      };
-      
-      const clipIndex = this.clips.findIndex(c => c.id === clip.id);
-      this.clips.splice(clipIndex, 1, firstClip, secondClip);
-      
-      this.showToast(`Clip split at ${this.formatTime(time)}`, 'success');
-    }
-  }
-
   onClipDrop(event: CdkDragDrop<any>): void {
     const dragData = event.item.data;
     const dropData = event.container.data;
     
-    if (dragData.type === 'video' && dragData.media) {
+    if (dragData.media) {
       this.addMediaToTimeline(dragData.media, dropData.type, dropData.index);
-    } else if (dragData.type === 'effect') {
-      this.applyEffect(dragData);
+    } else if (dragData.effect) {
+      this.applyEffect(dragData.effect);
     }
   }
 
@@ -502,21 +593,6 @@ export class StudioComponent implements OnInit {
 
   getPlayheadPosition(): number {
     return (this.currentTime / this.totalDuration) * (this.timelineZoom / 100) * 1000;
-  }
-
-  // Resize and trim operations
-  startResize(event: MouseEvent, clip: Clip, handle: 'start' | 'end'): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.showToast(`Resizing ${clip.name}`, 'info');
-    // Implement resize logic
-  }
-
-  startTrim(event: MouseEvent, clip: Clip, point: 'in' | 'out'): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.showToast(`Trimming ${clip.name}`, 'info');
-    // Implement trim logic
   }
 
   startPlayheadDrag(event: MouseEvent): void {
@@ -579,54 +655,14 @@ export class StudioComponent implements OnInit {
     }
   }
 
-  extractAudio(): void {
-    if (this.selectedClip && this.selectedClip.type === 'video') {
-      this.saveStateForUndo();
-      
-      const audioClip: Clip = {
-        ...this.selectedClip,
-        id: `audio_${this.selectedClip.id}`,
-        name: `${this.selectedClip.name} (Audio)`,
-        type: 'audio',
-        trackType: 'audio',
-        trackIndex: 0
-      };
-      
-      this.clips.push(audioClip);
-      this.showToast(`Audio extracted from ${this.selectedClip.name}`, 'success');
-    }
-  }
-
-  takeSnapshot(): void {
-    if (this.videoPlayer?.nativeElement) {
-      const canvas = document.createElement('canvas');
-      const video = this.videoPlayer.nativeElement;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(video, 0, 0);
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `snapshot-${Date.now()}.png`;
-            link.click();
-            URL.revokeObjectURL(url);
-            this.showToast('Snapshot saved', 'success');
-          }
-        });
-      }
-    }
-  }
-
   // Caption tools
   generateAutoCaption(): void {
-    this.showToast('Generating automatic captions...', 'info');
+    this.isLoading = true;
+    this.loadingMessage = 'Generating automatic captions...';
+    
     // Simulate AI caption generation
     setTimeout(() => {
+      this.isLoading = false;
       this.showToast('Captions generated successfully!', 'success');
     }, 3000);
   }
@@ -648,30 +684,13 @@ export class StudioComponent implements OnInit {
   }
 
   smartCut(): void {
-    this.showToast('Analyzing audio for smart cuts...', 'info');
+    this.isLoading = true;
+    this.loadingMessage = 'Analyzing audio for smart cuts...';
+    
     setTimeout(() => {
+      this.isLoading = false;
       this.showToast('Smart cuts applied successfully!', 'success');
     }, 2500);
-  }
-
-  // Keyframe management
-  editKeyframe(keyframe: Keyframe, event: MouseEvent): void {
-    event.stopPropagation();
-    this.showToast(`Editing keyframe at ${this.formatTime(keyframe.time)}`, 'info');
-  }
-
-  getVolumeEnvelopePoints(clip: Clip): string {
-    if (!clip.volumeEnvelope) return '';
-    
-    return clip.volumeEnvelope
-      .map(point => `${(point.time / clip.duration) * 100},${20 - (point.value / 100) * 20}`)
-      .join(' ');
-  }
-
-  showClipContextMenu(event: MouseEvent, clip: Clip): void {
-    event.preventDefault();
-    this.selectClip(clip);
-    // Show context menu
   }
 
   // Project management
@@ -690,6 +709,10 @@ export class StudioComponent implements OnInit {
 
   openExportModal(): void {
     this.showToast('Opening export settings...', 'info');
+  }
+
+  saveProject(): void {
+    this.showToast('Project saved successfully!', 'success');
   }
 
   // Undo/Redo
@@ -752,30 +775,56 @@ export class StudioComponent implements OnInit {
     return languageMap[languageCode] || languageCode;
   }
 
+  // TrackBy functions for performance
   trackByIndex(index: number): number {
     return index;
   }
 
-  get formattedCurrentTime(): string {
-    return this.formatTime(this.currentTime);
+  trackByMediaId(index: number, media: MediaDto): string {
+    return media.id;
   }
 
-  get formattedTotalDuration(): string {
-    return this.formatTime(this.totalDuration);
+  trackByEffectId(index: number, effect: Effect): string {
+    return effect.id;
+  }
+
+  trackByTemplateId(index: number, template: TitleTemplate): string {
+    return template.id;
+  }
+
+  trackByToolType(index: number, tool: AudioTool): string {
+    return tool.type;
+  }
+
+  trackByClipId(index: number, clip: Clip): string {
+    return clip.id;
+  }
+
+  trackByMarkerTime(index: number, marker: TimeMarker): string {
+    return marker.time;
+  }
+
+  trackByToastId(index: number, toast: Toast): string {
+    return toast.id;
   }
 
   // Toast notifications
   private showToast(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info'): void {
     const toast: Toast = {
-      id: Date.now().toString(),
+      id: (++this.toastIdCounter).toString(),
       message,
       type
     };
     
     this.toasts.push(toast);
     
+    // Auto-dismiss after 4 seconds
     setTimeout(() => {
-      this.toasts = this.toasts.filter(t => t.id !== toast.id);
+      this.dismissToast(toast.id);
     }, 4000);
+  }
+
+  dismissToast(toastId: string): void {
+    this.toasts = this.toasts.filter(t => t.id !== toastId);
   }
 }
