@@ -363,18 +363,108 @@ export class StudioComponent implements OnInit, OnDestroy {
 
   selectMedia(media: MediaDto): void {
     this.selectedMedia = media;
-    this.selectedVideoForPreview = media.video || '';
     this.showToast(`Selected: ${media.title}`, 'info');
+  }
+
+  addMediaToPreview(media: MediaDto): void {
+    this.selectedMedia = media;
+    this.selectedVideoForPreview = media.video || '';
+    this.showToast(`Now previewing: ${media.title}`, 'success');
   }
 
   onMediaThumbnailError(event: Event, media: MediaDto): void {
     console.error('Media thumbnail failed to load:', media.title, media.video);
     const videoElement = event.target as HTMLVideoElement;
-    videoElement.style.display = 'none';
+    // Don't hide the element, just show placeholder
+    videoElement.style.opacity = '0';
   }
 
   openImportDialog(): void {
-    this.router.navigate(['/media/create']);
+    // Create file input for direct import
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'video/*,audio/*,image/*';
+    input.multiple = true;
+    
+    input.onchange = (e: any) => {
+      const files = e.target.files;
+      if (files && files.length > 0) {
+        this.handleFileImport(files);
+      }
+    };
+    
+    input.click();
+  }
+
+  private handleFileImport(files: FileList): void {
+    this.isLoading = true;
+    this.loadingMessage = 'Importing media files...';
+    
+    const importPromises: Promise<any>[] = [];
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      
+      // Create media DTO
+      const mediaDto = {
+        title: file.name.replace(/\.[^/.]+$/, ''), // Remove extension
+        description: `Imported ${file.type} file`,
+        video: URL.createObjectURL(file), // Create blob URL
+        metaData: JSON.stringify({
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          importedAt: new Date().toISOString()
+        }),
+        projectId: '', // Will be set when added to timeline
+        sourceLanguage: 'en',
+        destinationLanguage: 'en',
+        countryDialect: ''
+      };
+      
+      // Add to media service
+      const promise = this.mediaService.create(mediaDto).toPromise()
+        .then((createdMedia) => {
+          // Try to upload the actual file
+          const formData = new FormData();
+          formData.append('video', file, file.name);
+          
+          return this.mediaService.uploadVideo(createdMedia.id, formData).toPromise()
+            .catch((uploadError) => {
+              console.warn('File upload failed, but media record created:', uploadError);
+              return createdMedia; // Return the created media even if upload fails
+            });
+        })
+        .catch((error) => {
+          console.error('Failed to create media record:', error);
+          // Create a local media object for immediate use
+          return {
+            id: `local-${Date.now()}-${i}`,
+            title: mediaDto.title,
+            video: mediaDto.video,
+            description: mediaDto.description,
+            metaData: mediaDto.metaData
+          };
+        });
+      
+      importPromises.push(promise);
+    }
+    
+    Promise.allSettled(importPromises).then((results) => {
+      const successfulImports = results.filter(r => r.status === 'fulfilled').length;
+      const failedImports = results.length - successfulImports;
+      
+      this.isLoading = false;
+      
+      if (successfulImports > 0) {
+        this.showToast(`Successfully imported ${successfulImports} file(s)`, 'success');
+        this.loadMedia(); // Refresh media library
+      }
+      
+      if (failedImports > 0) {
+        this.showToast(`Failed to import ${failedImports} file(s)`, 'warning');
+      }
+    });
   }
 
   // Playback controls
@@ -412,6 +502,12 @@ export class StudioComponent implements OnInit, OnDestroy {
   onTimeUpdate(event: Event): void {
     const video = event.target as HTMLVideoElement;
     this.currentTime = video.currentTime;
+  }
+
+  onVideoError(event: Event): void {
+    const video = event.target as HTMLVideoElement;
+    console.error('Video playback error:', video.error);
+    this.showToast('Video playback error. Please try a different file.', 'error');
   }
 
   // Timeline controls

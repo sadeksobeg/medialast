@@ -101,15 +101,15 @@ export class CreateMediaComponent implements OnInit {
 
   handleVideoFile(file: File): void {
     // Validate file type
-    if (!file.type.startsWith('video/')) {
-      this.showMessage('Please select a valid video file.', 'error');
+    if (!file.type.startsWith('video/') && !file.type.startsWith('audio/')) {
+      this.showMessage('Please select a valid video or audio file.', 'error');
       return;
     }
 
     // Validate file size (500MB limit)
-    const maxSize = 500 * 1024 * 1024; // 500MB in bytes
+    const maxSize = 1000 * 1024 * 1024; // 1GB in bytes
     if (file.size > maxSize) {
-      this.showMessage('File size must be less than 500MB.', 'error');
+      this.showMessage('File size must be less than 1GB.', 'error');
       return;
     }
 
@@ -120,10 +120,10 @@ export class CreateMediaComponent implements OnInit {
       this.media.title = file.name.replace(/\.[^/.]+$/, ''); // Remove file extension
     }
 
-    // Create preview URL for video
+    // Create preview URL for media file
     this.uploadedVideoUrl = URL.createObjectURL(file);
     
-    this.showMessage('Video selected successfully!', 'success');
+    this.showMessage('Media file selected successfully!', 'success');
   }
 
   removeVideo(): void {
@@ -161,40 +161,58 @@ export class CreateMediaComponent implements OnInit {
     }
 
     try {
-      // First create the media record
       this.isUploading = true;
       this.uploadProgress = 10;
 
-      const createdMedia = await this.mediasService.create(this.media).toPromise();
+      // First upload the video file to get a URL
+      const formData = new FormData();
+      formData.append('video', this.selectedVideoFile, this.selectedVideoFile.name);
+      
       this.uploadProgress = 30;
 
-      if (createdMedia && this.selectedVideoFile) {
-        // Then upload the video file
-        const formData = new FormData();
-        formData.append('video', this.selectedVideoFile, this.selectedVideoFile.name);
-
-        // Simulate upload progress
-        const progressInterval = setInterval(() => {
-          if (this.uploadProgress < 90) {
-            this.uploadProgress += 10;
-          }
-        }, 200);
-
-        try {
-          await this.mediasService.uploadVideo(createdMedia.id, formData).toPromise();
-          clearInterval(progressInterval);
-          this.uploadProgress = 100;
-          
-          setTimeout(() => {
-            this.showMessage('Media created and video uploaded successfully!', 'success');
-            this.router.navigate(['/media']);
-          }, 500);
-        } catch (uploadError) {
-          clearInterval(progressInterval);
-          console.error('Error uploading video:', uploadError);
-          this.showMessage('Media created but video upload failed. You can try uploading again later.', 'warning');
-          this.router.navigate(['/media']);
+      // Create a temporary URL for the video
+      const videoUrl = URL.createObjectURL(this.selectedVideoFile);
+      this.media.video = videoUrl;
+      
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        if (this.uploadProgress < 90) {
+          this.uploadProgress += 10;
         }
+      }, 200);
+
+      try {
+        // Create the media record with video URL
+        const createdMedia = await this.mediasService.create(this.media).toPromise();
+        
+        if (createdMedia) {
+          // Try to upload the actual file
+          try {
+            await this.mediasService.uploadVideo(createdMedia.id, formData).toPromise();
+            clearInterval(progressInterval);
+            this.uploadProgress = 100;
+            
+            setTimeout(() => {
+              this.showMessage('Media created and video uploaded successfully!', 'success');
+              this.router.navigate(['/media']);
+            }, 500);
+          } catch (uploadError) {
+            clearInterval(progressInterval);
+            console.error('Error uploading video file:', uploadError);
+            // Still proceed since we have the media record
+            this.uploadProgress = 100;
+            setTimeout(() => {
+              this.showMessage('Media created successfully! Video file upload may have failed but media is accessible.', 'warning');
+              this.router.navigate(['/media']);
+            }, 500);
+          }
+        }
+      } catch (createError) {
+        clearInterval(progressInterval);
+        console.error('Error creating media:', createError);
+        this.isUploading = false;
+        this.uploadProgress = 0;
+        this.showMessage('Failed to create media. Please try again.', 'error');
       }
     } catch (error) {
       console.error('Error creating media:', error);

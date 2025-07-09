@@ -144,6 +144,7 @@
               [cdkDragData]="{ type: 'media', media: media }"
               (click)="selectMedia(media)"
               [class.selected]="selectedMedia?.id === media.id"
+              (dblclick)="addMediaToPreview(media)"
             >
               <div class="media-thumbnail">
                 <video 
@@ -151,6 +152,7 @@
                   [src]="media.video" 
                   preload="metadata" 
                   muted
+                  crossorigin="anonymous"
                   (error)="onMediaThumbnailError($event, media)"
                 ></video>
                 <div class="media-placeholder" *ngIf="!media.video">
@@ -279,11 +281,14 @@
             [src]="selectedVideoForPreview" 
             #videoPlayer
             class="preview-video"
+           crossorigin="anonymous"
             (loadedmetadata)="onVideoLoaded($event)"
             (timeupdate)="onTimeUpdate($event)"
             (play)="isPlaying = true"
             (pause)="isPlaying = false"
+           (error)="onVideoError($event)"
             controls
+           preload="metadata"
           ></video>
           
           <ng-template #videoPlaceholder>

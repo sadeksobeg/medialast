@@ -207,33 +207,31 @@ export class ListMediasComponent implements OnInit {
     this.isVideoLoading = true;
     this.videoError = false;
     
-    // First try to get video via download endpoint
-    this.mediasService.downloadVideo(mediaId).subscribe({
-      next: (videoBlob: Blob) => {
-        console.log('Video downloaded successfully:', videoBlob);
-        
-        // Create a blob URL for the video
-        this.videoUrl = URL.createObjectURL(videoBlob);
-        this.isVideoLoading = false;
-        
-        // Force video element to reload with new URL
-        setTimeout(() => {
-          const videoElement = document.querySelector('.modal-video-player') as HTMLVideoElement;
-          if (videoElement) {
-            videoElement.src = this.videoUrl;
-            videoElement.load();
-          }
-        }, 100);
-      },
-      error: (error) => {
-        console.error('Failed to download video:', error);
-        
-        // Fallback: try to use the direct video URL if available
-        if (this.selectedMedia?.video && this.selectedMedia.video.trim() !== '') {
-          console.log('Falling back to direct video URL:', this.selectedMedia.video);
-          this.videoUrl = this.selectedMedia.video;
+    // Use direct video URL if available
+    if (this.selectedMedia?.video && this.selectedMedia.video.trim() !== '') {
+      console.log('Loading video from URL:', this.selectedMedia.video);
+      this.videoUrl = this.selectedMedia.video;
+      this.isVideoLoading = false;
+      
+      // Force video element to reload with new URL
+      setTimeout(() => {
+        const videoElement = document.querySelector('.modal-video-player') as HTMLVideoElement;
+        if (videoElement) {
+          videoElement.src = this.videoUrl;
+          videoElement.load();
+        }
+      }, 100);
+    } else {
+      // Try to get video via download endpoint as fallback
+      this.mediasService.downloadVideo(mediaId).subscribe({
+        next: (videoBlob: Blob) => {
+          console.log('Video downloaded successfully:', videoBlob);
+          
+          // Create a blob URL for the video
+          this.videoUrl = URL.createObjectURL(videoBlob);
           this.isVideoLoading = false;
           
+          // Force video element to reload with new URL
           setTimeout(() => {
             const videoElement = document.querySelector('.modal-video-player') as HTMLVideoElement;
             if (videoElement) {
@@ -241,14 +239,16 @@ export class ListMediasComponent implements OnInit {
               videoElement.load();
             }
           }, 100);
-        } else {
+        },
+        error: (error) => {
+          console.error('Failed to download video:', error);
           this.isVideoLoading = false;
           this.videoError = true;
           this.videoErrorMessage = 'No video available for this media item';
           this.showMessage('Failed to load video: No video source available', 'error');
         }
-      }
-    });
+      });
+    }
   }
 
   downloadVideo(media?: MediaDto): void {
@@ -257,25 +257,40 @@ export class ListMediasComponent implements OnInit {
     
     this.showMessage('Starting download...', 'info');
     
-    this.mediasService.downloadVideo(targetMedia.id).subscribe({
-      next: (videoBlob: Blob) => {
-        // Create download link
-        const url = URL.createObjectURL(videoBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${targetMedia.title || 'video'}.mp4`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        this.showMessage('Video downloaded successfully!', 'success');
-      },
-      error: (error) => {
-        console.error('Download failed:', error);
-        this.showMessage('Failed to download video', 'error');
-      }
-    });
+    // Try direct download first
+    if (targetMedia.video && targetMedia.video.trim() !== '') {
+      // Create download link for direct URL
+      const link = document.createElement('a');
+      link.href = targetMedia.video;
+      link.download = `${targetMedia.title || 'video'}.mp4`;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      this.showMessage('Video download started!', 'success');
+    } else {
+      // Fallback to download endpoint
+      this.mediasService.downloadVideo(targetMedia.id).subscribe({
+        next: (videoBlob: Blob) => {
+          // Create download link
+          const url = URL.createObjectURL(videoBlob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${targetMedia.title || 'video'}.mp4`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          
+          this.showMessage('Video downloaded successfully!', 'success');
+        },
+        error: (error) => {
+          console.error('Download failed:', error);
+          this.showMessage('Failed to download video', 'error');
+        }
+      });
+    }
   }
 
   editMedia(media: MediaDto): void {

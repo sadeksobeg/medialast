@@ -85,8 +85,10 @@
           [src]="media.video" 
           preload="metadata" 
           muted
+          crossorigin="anonymous"
           class="thumbnail-video"
           (error)="onVideoThumbnailError($event, media)"
+          (loadedmetadata)="onThumbnailLoaded($event)"
           (loadedmetadata)="onThumbnailLoaded($event)"
         ></video>
         <div *ngIf="!media.video || media.video.trim() === ''" class="no-video-thumbnail">
@@ -205,11 +207,13 @@
           *ngIf="!isVideoLoading && !videoError && videoUrl" 
           [src]="videoUrl" 
           controls 
+          crossorigin="anonymous"
           class="modal-video-player"
           (loadstart)="onVideoLoadStart()"
           (canplay)="onVideoCanPlay()"
           (loadedmetadata)="onVideoLoaded($event)"
           (error)="onVideoError($event)"
+          preload="metadata"
         ></video>
       </div>
 
