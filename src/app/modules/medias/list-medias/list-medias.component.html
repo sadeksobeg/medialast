@@ -1,642 +1,285 @@
-<div class="studio-container">
-  <!-- Left Sidebar -->
-  <div class="left-sidebar">
-    <div class="logo">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+<div class="media-list-container">
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="header-content">
+      <h1 class="page-title">Media Library</h1>
+      <p class="page-subtitle">Manage your video files and media assets</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="navigateToCreateMedia()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
+        </svg>
+        Add New Media
+      </button>
+      <button class="btn btn-secondary" (click)="refreshMediaList()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
+        </svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Search and Filter Section -->
+  <div class="search-filter-section">
+    <div class="search-container">
+      <div class="search-input-wrapper">
+        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"/>
+        </svg>
+        <input 
+          type="text" 
+          placeholder="Search media files..." 
+          [(ngModel)]="searchQuery"
+          (input)="onSearchChange()"
+          class="search-input"
+        />
+      </div>
+      <div class="filter-controls">
+        <select class="filter-select" [(ngModel)]="selectedLanguageFilter" (change)="applyFilters()">
+          <option value="">All Languages</option>
+          <option value="en">English</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="de">German</option>
+        </select>
+        <select class="filter-select" [(ngModel)]="selectedProjectFilter" (change)="applyFilters()">
+          <option value="">All Projects</option>
+          <option *ngFor="let project of projects" [value]="project.id">{{ project.title }}</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Loading media files...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && filteredVideos.length === 0" class="empty-state">
+    <div class="empty-icon">
+      <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor">
         <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
       </svg>
-      Video Studio Pro
     </div>
-    
-    <div class="search-bar">
-      <input type="text" placeholder="Search media, effects..." [(ngModel)]="searchQuery" (input)="onSearchChange()" />
-      <div class="search-tags">
-        <span class="tag" *ngFor="let tag of searchTags" (click)="applySearchTag(tag)">{{ tag }}</span>
-      </div>
-    </div>
-    
-    <nav class="main-nav">
-      <ul>
-        <!-- Media Library -->
-        <li class="nav-item" [class.active]="activeNavItem === 'media'" (click)="onNavClick('media')">
-          <i class="icon-media"></i>
-          <span>MEDIA LIBRARY</span>
-          <div class="media-panel" *ngIf="activeNavItem === 'media' && isMediaPanelExpanded">
-            <div class="media-category">
-              <div class="category-header">
-                <h4>PROJECT MEDIA</h4>
-                <button class="add-media-btn" (click)="navigateToCreateMedia()" title="Add New Media">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
-                  </svg>
-                </button>
-              </div>
-              
-              <div class="media-grid" *ngIf="projectVideos.length > 0">
-                <div 
-                  *ngFor="let video of filteredVideos" 
-                  class="media-card" 
-                  cdkDrag 
-                  [cdkDragData]="{ name: video.title, type: 'video', mediaId: video.id, src: video.video, media: video }"
-                  (click)="selectVideoForPreview(video)"
-                  [class.selected]="selectedMedia?.id === video.id"
-                >
-                  <div class="media-thumbnail">
-                    <video 
-                      *ngIf="video.video && video.video.trim() !== ''" 
-                      [src]="video.video" 
-                      preload="metadata" 
-                      muted
-                      (error)="onVideoThumbnailError($event, video)"
-                    ></video>
-                    <div *ngIf="!video.video || video.video.trim() === ''" class="no-video-thumbnail">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
-                      </svg>
-                    </div>
-                    <div class="media-overlay">
-                      <div class="media-duration" *ngIf="video.duration">{{ formatTime(video.duration) }}</div>
-                      <div class="media-actions">
-                        <button class="action-btn" (click)="previewVideo(video); $event.stopPropagation()" title="Preview">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"/>
-                          </svg>
-                        </button>
-                        <button class="action-btn" (click)="addVideoToTimeline(video); $event.stopPropagation()" title="Add to Timeline">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="media-info">
-                    <span class="media-title">{{ video.title }}</span>
-                    <div class="media-meta">
-                      <span class="meta-tag" *ngIf="video.sourceLanguage">{{ getLanguageName(video.sourceLanguage) }}</span>
-                      <span class="meta-tag" *ngIf="video.destinationLanguage">→ {{ getLanguageName(video.destinationLanguage) }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div *ngIf="projectVideos.length === 0" class="no-media-message">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
-                </svg>
-                <p>No media in your library yet</p>
-                <button class="btn-create-media" (click)="navigateToCreateMedia()">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
-                  </svg>
-                  Add Media
-                </button>
-              </div>
-            </div>
-          </div>
-        </li>
-
-        <!-- Audio Tools -->
-        <li class="nav-item" [class.active]="activeNavItem === 'audio'" (click)="onNavClick('audio')">
-          <i class="icon-audio"></i>
-          <span>AUDIO TOOLS</span>
-          <div class="audio-panel" *ngIf="activeNavItem === 'audio' && isAudioPanelExpanded">
-            <div class="tool-category">
-              <h4>AUDIO PROCESSING</h4>
-              <div class="tool-grid">
-                <div class="tool-card" (click)="openAudioTool('extract-voice')">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z"/>
-                  </svg>
-                  <span>Extract Voice</span>
-                </div>
-                <div class="tool-card" (click)="openAudioTool('remove-background')">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6M12,8A4,4 0 0,0 8,12A4,4 0 0,0 12,16A4,4 0 0,0 16,12A4,4 0 0,0 12,8Z"/>
-                  </svg>
-                  <span>Remove BG Audio</span>
-                </div>
-                <div class="tool-card" (click)="openAudioTool('noise-reduction')">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/>
-                  </svg>
-                  <span>Noise Reduction</span>
-                </div>
-                <div class="tool-card" (click)="openAudioTool('audio-mixer')">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M7,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H7A2,2 0 0,0 9,19V5A2,2 0 0,0 7,3M7,19H5V5H7V19M12,3H10A2,2 0 0,0 8,5V19A2,2 0 0,0 10,21H12A2,2 0 0,0 14,19V5A2,2 0 0,0 12,3M12,19H10V5H12V19M19,3H17A2,2 0 0,0 15,5V19A2,2 0 0,0 17,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H17V5H19V19Z"/>
-                  </svg>
-                  <span>Audio Mixer</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </li>
-
-        <!-- Effects -->
-        <li class="nav-item" [class.active]="activeNavItem === 'effects'" [class.expanded]="isEffectsPanelExpanded" (click)="onNavClick('effects')">
-          <i class="icon-effects"></i>
-          <span>EFFECTS</span>
-          <div class="effects-panel" *ngIf="isEffectsPanelExpanded">
-            <div class="effects-category">
-              <h4>VIDEO EFFECTS</h4>
-              <div class="effect-grid">
-                <div class="effect-card" 
-                     *ngFor="let effect of videoEffects" 
-                     cdkDrag 
-                     [cdkDragData]="{ name: effect.name, type: 'effect', effectType: effect.type, effect: effect }"
-                     (click)="applyEffect(effect)">
-                  <div class="effect-thumbnail">
-                    <img [src]="effect.thumbnail" [alt]="effect.name" />
-                  </div>
-                  <span>{{ effect.name }}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div class="effects-category">
-              <h4>TRANSITIONS</h4>
-              <div class="effect-grid">
-                <div class="effect-card" 
-                     *ngFor="let transition of transitions" 
-                     cdkDrag 
-                     [cdkDragData]="{ name: transition.name, type: 'transition', effectType: transition.type, effect: transition }"
-                     (click)="applyTransition(transition)">
-                  <div class="effect-thumbnail">
-                    <img [src]="transition.thumbnail" [alt]="transition.name" />
-                  </div>
-                  <span>{{ transition.name }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </li>
-
-        <!-- Text & Titles -->
-        <li class="nav-item" [class.active]="activeNavItem === 'text'" (click)="onNavClick('text')">
-          <i class="icon-text"></i>
-          <span>TEXT & TITLES</span>
-          <div class="text-panel" *ngIf="activeNavItem === 'text' && isTextPanelExpanded">
-            <div class="text-category">
-              <h4>TITLE TEMPLATES</h4>
-              <div class="text-grid">
-                <div class="text-card" *ngFor="let template of titleTemplates" (click)="addTextElement(template)">
-                  <div class="text-preview">{{ template.preview }}</div>
-                  <span>{{ template.name }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </li>
-
-        <!-- Captions & Subtitles -->
-        <li class="nav-item" [class.active]="activeNavItem === 'captions'" (click)="onNavClick('captions')">
-          <i class="icon-captions"></i>
-          <span>CAPTIONS</span>
-          <div class="captions-panel" *ngIf="activeNavItem === 'captions' && isCaptionsPanelExpanded">
-            <div class="captions-tools">
-              <button class="tool-btn" (click)="generateAutoCaption()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6Z"/>
-                </svg>
-                Auto Generate
-              </button>
-              <button class="tool-btn" (click)="importSubtitles()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-                </svg>
-                Import SRT
-              </button>
-              <button class="tool-btn" (click)="translateCaptions()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12.87,15.07L10.33,12.56L10.36,12.53C12.1,10.59 13.34,8.36 14.07,6H17V4H10V2H8V4H1V6H12.17C11.5,7.92 10.44,9.75 9,11.35C8.07,10.32 7.3,9.19 6.69,8H4.69C5.42,9.63 6.42,11.17 7.67,12.56L2.58,17.58L4,19L9,14L12.11,17.11L12.87,15.07Z"/>
-                </svg>
-                Translate
-              </button>
-            </div>
-          </div>
-        </li>
-      </ul>
-    </nav>
+    <h3>No Media Files Found</h3>
+    <p>Start by uploading your first video file to get started.</p>
+    <button class="btn btn-primary" (click)="navigateToCreateMedia()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
+      </svg>
+      Add Your First Media
+    </button>
   </div>
 
-  <!-- Main Content Area -->
-  <div class="main-content">
-    <!-- Top Header -->
-    <div class="top-header">
-      <div class="project-actions">
-        <button class="header-btn" (click)="onHeaderButtonClick('save-project')" title="Save Project">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/>
-          </svg>
-        </button>
-        <span class="project-name" (click)="onHeaderButtonClick('new-project')">{{ currentProjectName }}</span>
-        <button class="header-btn dropdown-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M7,10L12,15L17,10H7Z"/>
-          </svg>
-        </button>
-      </div>
-      
-      <div class="view-controls">
-        <div class="zoom-control">
-          <button class="zoom-btn" (click)="zoomOut()" title="Zoom Out">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19,13H5V11H19V13Z"/>
-            </svg>
-          </button>
-          <span class="zoom-level">{{ zoomLevel }}%</span>
-          <button class="zoom-btn" (click)="zoomIn()" title="Zoom In">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
-            </svg>
-          </button>
-        </div>
-        
-        <div class="history-controls">
-          <button class="history-btn" (click)="undo()" [disabled]="undoStack.length <= 1" title="Undo">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12.5,8C9.85,8 7.45,9 5.6,10.6L2,7V16H11L7.38,12.38C8.77,11.22 10.54,10.5 12.5,10.5C16.04,10.5 19.05,12.81 20.1,16L22.47,15.22C21.08,11.03 17.15,8 12.5,8Z"/>
-            </svg>
-          </button>
-          <button class="history-btn" (click)="redo()" [disabled]="redoStack.length === 0" title="Redo">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M18.4,10.6C16.55,9 14.15,8 11.5,8C6.85,8 2.92,11.03 1.53,15.22L3.9,16C4.95,12.81 7.96,10.5 11.5,10.5C13.46,10.5 15.23,11.22 16.62,12.38L13,16H22V7L18.4,10.6Z"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-      
-      <div class="export-section">
-        <button class="export-button" (click)="onHeaderButtonClick('export')">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-            <path d="M12,11L16,15H13.5V19H10.5V15H8L12,11Z"/>
-          </svg>
-          <span>EXPORT</span>
-        </button>
-        
-        <div class="header-actions">
-          <button class="header-btn" (click)="onHeaderButtonClick('share')" title="Share Project">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M18,16.08C17.24,16.08 16.56,16.38 16.04,16.85L8.91,12.7C8.96,12.47 9,12.24 9,12C9,11.76 8.96,11.53 8.91,11.3L15.96,7.19C16.5,7.69 17.21,8 18,8A3,3 0 0,0 21,5A3,3 0 0,0 18,2A3,3 0 0,0 15,5C15,5.24 15.04,5.47 15.09,5.7L8.04,9.81C7.5,9.31 6.79,9 6,9A3,3 0 0,0 3,12A3,3 0 0,0 6,15C6.79,15 7.5,14.69 8.04,14.19L15.16,18.34C15.11,18.55 15.08,18.77 15.08,19C15.08,20.61 16.39,21.91 18,21.91C19.61,21.91 20.92,20.61 20.92,19C20.92,17.39 19.61,16.08 18,16.08Z"/>
-            </svg>
-          </button>
-          <button class="header-btn" (click)="onHeaderButtonClick('settings')" title="Project Settings">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.22,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.22,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
-            </svg>
-          </button>
-          <div class="user-avatar">
-            <img src="https://via.placeholder.com/32x32" alt="User Avatar" />
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Video Player and Timeline -->
-    <div class="video-timeline-section">
-      <!-- Video Preview Area -->
-      <div class="video-player">
-        <div class="player-container">
-          <video 
-            *ngIf="selectedVideoForPreview; else placeholderImage" 
-            [src]="selectedVideoForPreview" 
-            controls 
-            class="video-preview"
-            #videoPlayer
-            (loadedmetadata)="onVideoLoaded($event)"
-            (timeupdate)="onTimeUpdate($event)"
-          ></video>
-          <ng-template #placeholderImage>
-            <div class="video-placeholder">
-              <svg width="64" height="64" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
-              </svg>
-              <p>Select a video to preview</p>
-            </div>
-          </ng-template>
-          
-          <!-- Player Controls Overlay -->
-          <div class="player-controls-overlay">
-            <div class="playback-controls">
-              <button class="control-btn" (click)="togglePlayPause()" [innerHTML]="playButtonIcon"></button>
-              <span class="timecode">{{ formattedCurrentTime }}</span>
-              <div class="progress-bar">
-                <div class="progress-fill" [style.width.%]="(currentTime / totalDuration) * 100"></div>
-              </div>
-              <span class="duration">{{ formattedTotalDuration }}</span>
-            </div>
-            
-            <div class="editing-controls">
-              <button class="control-btn" (click)="splitAtCurrentTime()" title="Split at Current Time">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19,13H5V11H19V13Z"/>
-                </svg>
-              </button>
-              <button class="control-btn" (click)="extractAudio()" title="Extract Audio">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/>
-                </svg>
-              </button>
-              <button class="control-btn" (click)="deleteSelectedClip()" title="Delete Selected">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Professional Timeline -->
-      <div class="timeline">
-        <div class="timeline-header">
-          <div class="timeline-controls">
-            <button class="timeline-btn" (click)="fitTimelineToWindow()" title="Fit to Window">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M9,9H15V15H9V9M11,11V13H13V11H11M2,3V21H4V19H6V21H8V3H6V5H4V3H2M16,3V21H18V19H20V21H22V3H20V5H18V3H16Z"/>
-              </svg>
-            </button>
-            <div class="timeline-zoom">
-              <input type="range" min="10" max="500" [(ngModel)]="timelineZoom" (input)="onTimelineZoomChange()" />
-              <span>{{ timelineZoom }}%</span>
-            </div>
-          </div>
-          
-          <div class="time-markers">
-            <span class="time-marker" *ngFor="let marker of timeMarkers">{{ marker }}</span>
-          </div>
-        </div>
-        
-        <div class="timeline-tracks">
-          <!-- Video Tracks -->
-          <div class="track-group">
-            <div class="track-label">VIDEO</div>
-            <div
-              class="track video-track"
-              *ngFor="let trackNum of videoTracks"
-              cdkDropList
-              [cdkDropListData]="{ type: 'video', track: trackNum }"
-              (cdkDropListDropped)="drop($event)"
-            >
-              <div class="track-controls">
-                <button class="track-btn" title="Mute Track">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z"/>
-                  </svg>
-                </button>
-              </div>
-              
-              <div class="track-content">
-                <ng-container *ngFor="let clip of clipsByTrack('video', trackNum)">
-                  <div
-                    class="clip video-clip"
-                    [class.selected]="selectedClipId === clip.id"
-                    [class]="getClipEffectClass(clip)"
-                    [style.left.%]="getClipPosition(clip)"
-                    [style.width.%]="getClipWidth(clip)"
-                    (click)="selectClip(clip.id)"
-                    (dblclick)="editClip(clip)"
-                    (contextmenu)="showClipContextMenu($event, clip)"
-                    cdkDrag
-                    [cdkDragData]="clip"
-                  >
-                    <div class="clip-content">
-                      <div class="clip-thumbnail" *ngIf="clip.type === 'video'">
-                        <img [src]="clip.src || 'assets/images/placeholders/100x50.png'" [alt]="clip.name" />
-                      </div>
-                      <div class="clip-waveform" *ngIf="clip.type === 'audio'">
-                        <!-- Audio waveform visualization would go here -->
-                        <div class="waveform-bars">
-                          <div class="bar" *ngFor="let bar of getWaveformBars(clip)"></div>
-                        </div>
-                      </div>
-                      <div class="clip-info">
-                        <span class="clip-name">{{ clip.name }}</span>
-                        <span class="clip-duration">{{ formatTime(clip.duration) }}</span>
-                      </div>
-                    </div>
-                    
-                    <!-- Clip resize handles -->
-                    <div class="resize-handle left" (mousedown)="startResize($event, clip, 'left')"></div>
-                    <div class="resize-handle right" (mousedown)="startResize($event, clip, 'right')"></div>
-                  </div>
-                </ng-container>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Audio Tracks -->
-          <div class="track-group">
-            <div class="track-label">AUDIO</div>
-            <div
-              class="track audio-track"
-              *ngFor="let trackNum of audioTracks"
-              cdkDropList
-              [cdkDropListData]="{ type: 'audio', track: trackNum }"
-              (cdkDropListDropped)="drop($event)"
-            >
-              <div class="track-controls">
-                <button class="track-btn" title="Mute Track">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M3,9V15H7L12,20V4L7,9H3M16.59,12L14,9.41L15.41,8L18,10.59L20.59,8L22,9.41L19.41,12L22,14.59L20.59,16L18,13.41L15.41,16L14,14.59L16.59,12Z"/>
-                  </svg>
-                </button>
-              </div>
-              
-              <div class="track-content">
-                <ng-container *ngFor="let clip of clipsByTrack('audio', trackNum)">
-                  <div
-                    class="clip audio-clip"
-                    [class.selected]="selectedClipId === clip.id"
-                    [style.left.%]="getClipPosition(clip)"
-                    [style.width.%]="getClipWidth(clip)"
-                    (click)="selectClip(clip.id)"
-                    (dblclick)="editClip(clip)"
-                    cdkDrag
-                    [cdkDragData]="clip"
-                  >
-                    <div class="clip-content">
-                      <div class="clip-waveform">
-                        <div class="waveform-bars">
-                          <div class="bar" *ngFor="let bar of getWaveformBars(clip)" [style.height.%]="bar"></div>
-                        </div>
-                      </div>
-                      <div class="clip-info">
-                        <span class="clip-name">{{ clip.name }}</span>
-                      </div>
-                    </div>
-                    
-                    <div class="resize-handle left" (mousedown)="startResize($event, clip, 'left')"></div>
-                    <div class="resize-handle right" (mousedown)="startResize($event, clip, 'right')"></div>
-                  </div>
-                </ng-container>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Playhead -->
-        <div class="playhead" [style.left.%]="(currentTime / totalDuration) * 100">
-          <div class="playhead-line"></div>
-          <div class="playhead-handle"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modals and Dialogs -->
-  
-  <!-- Video Preview Modal -->
-  <div class="video-preview-modal" [class.active]="showVideoPreviewModal" (click)="closeVideoPreview()">
-    <div class="modal-content" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h3>{{ previewingVideo?.title }}</h3>
-        <button class="close-btn" (click)="closeVideoPreview()">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
-          </svg>
-        </button>
-      </div>
-      <div class="modal-body">
+  <!-- Media Grid -->
+  <div *ngIf="!isLoading && filteredVideos.length > 0" class="media-grid">
+    <div *ngFor="let media of filteredVideos; trackBy: trackByMediaId" class="media-card">
+      <!-- Video Thumbnail -->
+      <div class="media-thumbnail" (click)="viewMedia(media)">
         <video 
-          *ngIf="previewingVideo" 
-          [src]="previewingVideo.video" 
-          controls 
-          autoplay
-          class="preview-video"
+          *ngIf="media.video && media.video.trim() !== ''" 
+          [src]="media.video" 
+          preload="metadata" 
+          muted
+          class="thumbnail-video"
+          (error)="onVideoThumbnailError($event, media)"
+          (loadedmetadata)="onThumbnailLoaded($event)"
         ></video>
-        <div class="video-info">
-          <p><strong>Description:</strong> {{ previewingVideo?.description || 'No description' }}</p>
-          <p><strong>Source Language:</strong> {{ getLanguageName(previewingVideo?.sourceLanguage) }}</p>
-          <p><strong>Destination Language:</strong> {{ getLanguageName(previewingVideo?.destinationLanguage) }}</p>
+        <div *ngIf="!media.video || media.video.trim() === ''" class="no-video-thumbnail">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
+          </svg>
+          <span>No Video</span>
+        </div>
+        <div class="play-overlay">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
+          </svg>
+        </div>
+        <div class="media-duration" *ngIf="media.duration">
+          {{ formatDuration(media.duration) }}
         </div>
       </div>
-      <div class="modal-actions">
-        <button class="btn btn-secondary" (click)="closeVideoPreview()">Close</button>
-        <button class="btn btn-primary" (click)="addVideoToTimeline(previewingVideo!); closeVideoPreview()">
-          Add to Timeline
-        </button>
+
+      <!-- Media Info -->
+      <div class="media-info">
+        <h3 class="media-title" [title]="media.title">{{ media.title }}</h3>
+        <p class="media-description" *ngIf="media.description" [title]="media.description">
+          {{ media.description }}
+        </p>
+        
+        <!-- Media Metadata -->
+        <div class="media-metadata">
+          <div class="metadata-row" *ngIf="media.sourceLanguage">
+            <span class="metadata-label">Source:</span>
+            <span class="language-tag">{{ getLanguageName(media.sourceLanguage) }}</span>
+          </div>
+          <div class="metadata-row" *ngIf="media.destinationLanguage">
+            <span class="metadata-label">Target:</span>
+            <span class="language-tag">{{ getLanguageName(media.destinationLanguage) }}</span>
+          </div>
+          <div class="metadata-row" *ngIf="media.countryDialect">
+            <span class="metadata-label">Dialect:</span>
+            <span class="dialect-tag">{{ media.countryDialect }}</span>
+          </div>
+          <div class="metadata-row" *ngIf="media.creationTime">
+            <span class="metadata-label">Created:</span>
+            <span class="date-tag">{{ formatDate(media.creationTime) }}</span>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="media-actions">
+          <button class="action-btn primary" (click)="viewMedia(media)" title="View Details">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"/>
+            </svg>
+            View
+          </button>
+          <button class="action-btn secondary" (click)="downloadVideo(media)" title="Download Video">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/>
+            </svg>
+            Download
+          </button>
+          <button class="action-btn secondary" (click)="editMedia(media)" title="Edit Media">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/>
+            </svg>
+            Edit
+          </button>
+          <button class="action-btn danger" (click)="deleteMedia(media.id)" title="Delete Media">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
+            </svg>
+            Delete
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Audio Tools Modal -->
-  <div class="audio-tools-modal" [class.active]="showAudioToolsModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>{{ currentAudioTool?.title }}</h3>
-        <button class="close-btn" (click)="closeAudioToolsModal()">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
-          </svg>
-        </button>
-      </div>
-      <div class="modal-body">
-        <div class="tool-content" [ngSwitch]="currentAudioTool?.type">
-          <!-- Extract Voice Tool -->
-          <div *ngSwitchCase="'extract-voice'" class="extract-voice-tool">
-            <p>Extract voice/speech from your video while preserving audio quality.</p>
-            <div class="tool-options">
-              <label>
-                <input type="checkbox" [(ngModel)]="audioToolOptions.removeBackground" />
-                Remove background noise
-              </label>
-              <label>
-                <input type="checkbox" [(ngModel)]="audioToolOptions.enhanceVoice" />
-                Enhance voice clarity
-              </label>
-            </div>
-            <button class="btn btn-primary" (click)="processAudioTool()">Extract Voice</button>
-          </div>
-          
-          <!-- Remove Background Audio Tool -->
-          <div *ngSwitchCase="'remove-background'" class="remove-bg-tool">
-            <p>Remove background music and noise, keeping only the voice.</p>
-            <div class="tool-options">
-              <label>Noise Reduction Level:</label>
-              <input type="range" min="0" max="100" [(ngModel)]="audioToolOptions.noiseReduction" />
-              <span>{{ audioToolOptions.noiseReduction }}%</span>
-            </div>
-            <button class="btn btn-primary" (click)="processAudioTool()">Remove Background</button>
-          </div>
-          
-          <!-- Audio Mixer Tool -->
-          <div *ngSwitchCase="'audio-mixer'" class="audio-mixer-tool">
-            <p>Mix multiple audio tracks with professional controls.</p>
-            <div class="mixer-controls">
-              <div class="mixer-channel" *ngFor="let track of audioTracks; let i = index">
-                <label>Track {{ i + 1 }}</label>
-                <input type="range" min="0" max="100" [(ngModel)]="mixerLevels[i]" />
-                <span>{{ mixerLevels[i] }}%</span>
-              </div>
-            </div>
-            <button class="btn btn-primary" (click)="processAudioTool()">Apply Mix</button>
-          </div>
-        </div>
-      </div>
-    </div>
+  <!-- Load More Button -->
+  <div *ngIf="!isLoading && filteredVideos.length > 0 && hasMoreItems" class="load-more-container">
+    <button class="btn btn-outline" (click)="loadMore()" [disabled]="isLoadingMore">
+      <span *ngIf="!isLoadingMore">Load More</span>
+      <span *ngIf="isLoadingMore">Loading...</span>
+    </button>
   </div>
+</div>
 
-  <!-- Export Modal -->
-  <div class="export-modal" [class.active]="showExportModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Export Settings</h3>
-        <button class="close-btn" (click)="closeExportModal()">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+<!-- Video Details Modal -->
+<div class="video-modal" [class.active]="showVideoModal" (click)="closeVideoModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ selectedMedia?.title }}</h2>
+      <button class="close-btn" (click)="closeVideoModal()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+        </svg>
+      </button>
+    </div>
+    
+    <div class="modal-body">
+      <!-- Video Player -->
+      <div class="video-player-container">
+        <div *ngIf="isVideoLoading" class="video-loading">
+          <div class="loading-spinner"></div>
+          <p>Loading video...</p>
+        </div>
+        
+        <div *ngIf="videoError" class="video-error">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12,2C13.1,2 14,2.9 14,4C14,5.1 13.1,6 12,6C10.9,6 10,5.1 10,4C10,2.9 10.9,2 12,2M21,9V7L15,1H5C3.89,1 3,1.89 3,3V21A2,2 0 0,0 5,23H19A2,2 0 0,0 21,21V9M19,9H14V4H5V19H19V9Z"/>
           </svg>
-        </button>
+          <h3>Video Error</h3>
+          <p>{{ videoErrorMessage }}</p>
+          <button class="btn btn-primary" (click)="testWithSampleVideo()">Test with Sample Video</button>
+        </div>
+        
+        <video 
+          *ngIf="!isVideoLoading && !videoError && videoUrl" 
+          [src]="videoUrl" 
+          controls 
+          class="modal-video-player"
+          (loadstart)="onVideoLoadStart()"
+          (canplay)="onVideoCanPlay()"
+          (loadedmetadata)="onVideoLoaded($event)"
+          (error)="onVideoError($event)"
+        ></video>
       </div>
-      <div class="modal-body">
-        <div class="export-options">
-          <div class="option-group">
-            <label>Format</label>
-            <select [(ngModel)]="exportSettings.format">
-              <option value="mp4">MP4 (Recommended)</option>
-              <option value="mov">MOV</option>
-              <option value="avi">AVI</option>
-              <option value="webm">WebM</option>
-            </select>
+
+      <!-- Video Information -->
+      <div class="video-details">
+        <div class="details-section">
+          <h3>Video Information</h3>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Title:</span>
+              <span class="detail-value">{{ selectedMedia?.title }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedMedia?.description">
+              <span class="detail-label">Description:</span>
+              <span class="detail-value">{{ selectedMedia?.description }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedMedia?.sourceLanguage">
+              <span class="detail-label">Source Language:</span>
+              <span class="detail-value">{{ getLanguageName(selectedMedia?.sourceLanguage) }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedMedia?.destinationLanguage">
+              <span class="detail-label">Target Language:</span>
+              <span class="detail-value">{{ getLanguageName(selectedMedia?.destinationLanguage) }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedMedia?.countryDialect">
+              <span class="detail-label">Country Dialect:</span>
+              <span class="detail-value">{{ selectedMedia?.countryDialect }}</span>
+            </div>
+            <div class="detail-item" *ngIf="videoMetadata.duration">
+              <span class="detail-label">Duration:</span>
+              <span class="detail-value">{{ formatDuration(videoMetadata.duration) }}</span>
+            </div>
+            <div class="detail-item" *ngIf="videoMetadata.resolution">
+              <span class="detail-label">Resolution:</span>
+              <span class="detail-value">{{ videoMetadata.resolution }}</span>
+            </div>
+            <div class="detail-item" *ngIf="selectedMedia?.creationTime">
+              <span class="detail-label">Created:</span>
+              <span class="detail-value">{{ formatDate(selectedMedia?.creationTime) }}</span>
+            </div>
           </div>
-          
-          <div class="option-group">
-            <label>Quality</label>
-            <select [(ngModel)]="exportSettings.quality">
-              <option value="4k">4K (3840x2160)</option>
-              <option value="1080p">Full HD (1920x1080)</option>
-              <option value="720p">HD (1280x720)</option>
-              <option value="480p">SD (854x480)</option>
-            </select>
-          </div>
-          
-          <div class="option-group">
-            <label>Frame Rate</label>
-            <select [(ngModel)]="exportSettings.frameRate">
-              <option value="60">60 FPS</option>
-              <option value="30">30 FPS</option>
-              <option value="24">24 FPS</option>
-            </select>
-          </div>
-          
-          <div class="option-group">
-            <label>Bitrate</label>
-            <input type="range" min="1" max="50" [(ngModel)]="exportSettings.bitrate" />
-            <span>{{ exportSettings.bitrate }} Mbps</span>
+        </div>
+
+        <!-- Debug Information (for development) -->
+        <div class="debug-section" *ngIf="selectedMedia">
+          <h4>Debug Information</h4>
+          <div class="debug-info">
+            <p><strong>Media ID:</strong> {{ selectedMedia.id }}</p>
+            <p><strong>Video URL:</strong> {{ selectedMedia.video || 'Not available' }}</p>
+            <p><strong>URL Type:</strong> {{ getUrlType(selectedMedia.video) }}</p>
+            <p><strong>Project ID:</strong> {{ selectedMedia.projectId || 'Not assigned' }}</p>
           </div>
         </div>
       </div>
-      <div class="modal-actions">
-        <button class="btn btn-secondary" (click)="closeExportModal()">Cancel</button>
-        <button class="btn btn-primary" (click)="performExport()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-          </svg>
-          Export Video
-        </button>
-      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" (click)="closeVideoModal()">Close</button>
+      <button class="btn btn-primary" (click)="downloadVideo()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z"/>
+        </svg>
+        Download Video
+      </button>
+      <button class="btn btn-primary" (click)="editSelectedMedia()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"/>
+        </svg>
+        Edit Media
+      </button>
     </div>
   </div>
-</div> 
+</div>

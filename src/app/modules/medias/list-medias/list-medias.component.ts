@@ -1,82 +1,56 @@
 import { Component, OnInit } from '@angular/core';
 import { PagedAndSortedResultRequestDto } from '@abp/ng.core';
 import { MediaDto, MediaService } from '@proxy/medias';
+import { ProjectDto, ProjectService } from '@proxy/projects';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router'; // Import RouterModule
-import { FormsModule } from '@angular/forms'; // Import FormsModule for ngModel
-import Swal from 'sweetalert2'; // Import Swal
+import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import Swal from 'sweetalert2';
 import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-list-medias',
-  imports: [CommonModule, RouterModule, FormsModule], // Add FormsModule here
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './list-medias.component.html',
   styleUrls: ['./list-medias.component.scss']
 })
 export class ListMediasComponent implements OnInit {
   media: MediaDto[] = [];
-  projectVideos: MediaDto[] = [];
   filteredVideos: MediaDto[] = [];
+  projects: ProjectDto[] = [];
   selectedMedia: MediaDto | null = null;
-  showVideoModal: boolean = false;
-  showVideoPreviewModal: boolean = false;
-  showAudioToolsModal: boolean = false;
-  showExportModal: boolean = false;
+  
+  // Search and filter
+  searchQuery: string = '';
+  selectedLanguageFilter: string = '';
+  selectedProjectFilter: string = '';
+  
+  // Loading states
   isLoading: boolean = false;
+  isLoadingMore: boolean = false;
   isVideoLoading: boolean = false;
+  
+  // Modal states
+  showVideoModal: boolean = false;
+  
+  // Video player states
   videoError: boolean = false;
   videoErrorMessage: string = '';
   videoUrl: string = '';
-  selectedVideoForPreview: string = '';
-  previewingVideo: MediaDto | null = null;
   
-  // Navigation state
-  activeNavItem: string = 'media';
-  isAudioPanelExpanded: boolean = false;
-  isEffectsPanelExpanded: boolean = false;
-  isTextPanelExpanded: boolean = false;
-  isCaptionsPanelExpanded: boolean = false;
+  // Pagination
+  hasMoreItems: boolean = true;
   
-  // Project state
-  currentProjectName: string = 'Untitled Project';
-  
-  // Playback state
-  isPlaying: boolean = false;
-  currentTime: number = 0;
-  totalDuration: number = 240;
-  
-  // Timeline state
-  zoomLevel: number = 100;
-  timelineZoom: number = 100;
-  selectedClipId: string | null = null;
-  videoTracks: number[] = [0, 1, 2];
-  audioTracks: number[] = [0, 1, 2, 3];
-  timeMarkers: string[] = ['00:00', '01:00', '02:00', '03:00', '04:00'];
-  
-  // Undo/Redo
-  undoStack: any[][] = [[]];
-  redoStack: any[][] = [];
-  
-  // Audio tools
-  currentAudioTool: any = null;
-  
-  // Export settings
-  exportSettings = {
-    format: 'mp4',
-    quality: '1080p',
-    frameRate: '30',
-    bitrate: 10
-  };
-  
+  // Video metadata
   videoMetadata = {
     duration: 0,
     resolution: ''
   };
   
   input: PagedAndSortedResultRequestDto = {
-    maxResultCount: 10,
+    maxResultCount: 12,
     skipCount: 0,
-    sorting: ''
+    sorting: 'creationTime desc'
   };
 
   // Language mapping for better display
@@ -97,139 +71,13 @@ export class ListMediasComponent implements OnInit {
 
   constructor(
     private mediasService: MediaService,
+    private projectService: ProjectService,
     private router: Router
   ) {}
 
   ngOnInit(): void {
     this.loadMedia();
-  }
-
-  // Navigation methods
-  onNavClick(item: string): void {
-    this.activeNavItem = item;
-    
-    // Reset all panel states
-    this.isAudioPanelExpanded = false;
-    this.isEffectsPanelExpanded = false;
-    this.isTextPanelExpanded = false;
-    this.isCaptionsPanelExpanded = false;
-    
-    // Set active panel
-    switch (item) {
-      case 'audio':
-        this.isAudioPanelExpanded = true;
-        break;
-      case 'effects':
-        this.isEffectsPanelExpanded = true;
-        break;
-      case 'text':
-        this.isTextPanelExpanded = true;
-        break;
-      case 'captions':
-        this.isCaptionsPanelExpanded = true;
-        break;
-    }
-  }
-
-  // Header actions
-  onHeaderButtonClick(buttonName: string): void {
-    switch (buttonName) {
-      case 'save-project':
-        this.showMessage('Project saved!', 'success');
-        break;
-      case 'new-project':
-        this.showMessage('New project created!', 'success');
-        break;
-      case 'export':
-        this.showExportModal = true;
-        break;
-      case 'share':
-        this.showMessage('Share link copied!', 'success');
-        break;
-      case 'settings':
-        this.showMessage('Settings opened!', 'info');
-        break;
-      default:
-        console.log(`Header button clicked: ${buttonName}`);
-    }
-  }
-
-  // Playback controls
-  togglePlayPause(): void {
-    this.isPlaying = !this.isPlaying;
-    this.showMessage(this.isPlaying ? 'Playing' : 'Paused');
-  }
-
-  // Timeline controls
-  zoomIn(): void {
-    if (this.zoomLevel < 400) {
-      this.zoomLevel += 25;
-      this.showMessage(`Zoomed in to ${this.zoomLevel}%`);
-    }
-  }
-
-  zoomOut(): void {
-    if (this.zoomLevel > 25) {
-      this.zoomLevel -= 25;
-      this.showMessage(`Zoomed out to ${this.zoomLevel}%`);
-    }
-  }
-
-  onTimelineZoomChange(): void {
-    // Update timeline zoom
-  }
-
-  fitTimelineToWindow(): void {
-    this.timelineZoom = 100;
-    this.showMessage('Timeline fitted to window');
-  }
-
-  // Clip management
-  splitAtCurrentTime(): void {
-    this.showMessage('Split at current time');
-  }
-
-  extractAudio(): void {
-    this.showMessage('Audio extracted');
-  }
-
-  deleteSelectedClip(): void {
-    this.showMessage('Clip deleted');
-  }
-
-  // Undo/Redo
-  undo(): void {
-    this.showMessage('Undid last action');
-  }
-
-  redo(): void {
-    this.showMessage('Redid last action');
-  }
-
-  // Video preview methods
-  closeVideoPreview(): void {
-    this.showVideoPreviewModal = false;
-    this.previewingVideo = null;
-  }
-
-  addVideoToTimeline(video: MediaDto): void {
-    this.showMessage(`Added "${video.title}" to timeline`);
-  }
-
-  // Audio tools
-  closeAudioToolsModal(): void {
-    this.showAudioToolsModal = false;
-    this.currentAudioTool = null;
-  }
-
-  // Export
-  closeExportModal(): void {
-    this.showExportModal = false;
-  }
-
-  performExport(): void {
-    this.showMessage('Starting export...', 'info');
-    this.showExportModal = false;
+    this.loadProjects();
   }
 
   loadMedia(): void {
@@ -240,96 +88,118 @@ export class ListMediasComponent implements OnInit {
         console.log('Media List API Response:', response);
         if (response && response.items) {
           this.media = response.items;
-          this.projectVideos = response.items;
-          this.filteredVideos = response.items;
+          this.applyFilters();
+          this.hasMoreItems = response.items.length === this.input.maxResultCount;
           console.log('Loaded media items:', this.media.length);
-          
-          // Debug: Log each media item
-          this.media.forEach((item, index) => {
-            console.log(`Media ${index + 1}:`, {
-              id: item.id,
-              title: item.title,
-              hasVideo: !!item.video,
-              videoUrl: item.video,
-              description: item.description
-            });
-          });
         } else {
           console.log('No items in the media list response');
+          this.hasMoreItems = false;
         }
       },
       error: error => {
         this.isLoading = false;
         console.error('Error fetching media list:', error);
         this.showMessage('Failed to load media list', 'error');
+        this.hasMoreItems = false;
+      }
+    });
+  }
+
+  loadProjects(): void {
+    this.projectService.getList({
+      maxResultCount: 100,
+      skipCount: 0,
+      sorting: 'title'
+    }).subscribe({
+      next: (response) => {
+        this.projects = response.items || [];
+      },
+      error: (error) => {
+        console.error('Error loading projects:', error);
       }
     });
   }
 
   loadMore(): void {
-    this.isLoading = true;
+    if (this.isLoadingMore || !this.hasMoreItems) return;
+    
+    this.isLoadingMore = true;
     this.input.skipCount += this.input.maxResultCount;
+    
     this.mediasService.getList(this.input).subscribe({
       next: response => {
-        this.isLoading = false;
+        this.isLoadingMore = false;
         console.log('Load More Media API Response:', response);
-        this.media = [...this.media, ...response.items];
+        if (response && response.items) {
+          this.media = [...this.media, ...response.items];
+          this.applyFilters();
+          this.hasMoreItems = response.items.length === this.input.maxResultCount;
+        } else {
+          this.hasMoreItems = false;
+        }
       },
       error: error => {
-        this.isLoading = false;
+        this.isLoadingMore = false;
         console.error('Error loading more media:', error);
         this.showMessage('Failed to load more media', 'error');
       }
     });
   }
 
-  deleteMedia(mediaId: string): void {
-    Swal.fire({
-      title: 'Are you sure?',
-      text: 'This action cannot be undone!',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Yes, delete it!',
-      cancelButtonText: 'Cancel'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        this.mediasService.delete(mediaId).subscribe({
-          next: () => {
-            this.media = this.media.filter(m => m.id !== mediaId);
-            Swal.fire('Deleted!', 'The media has been deleted.', 'success');
-          },
-          error: (err) => {
-            Swal.fire('Error', 'Something went wrong while deleting.', 'error');
-            console.error('Delete failed:', err);
-          }
-        });
-      }
-    });
+  onSearchChange(): void {
+    this.applyFilters();
+  }
+
+  applyFilters(): void {
+    let filtered = [...this.media];
+
+    // Apply search filter
+    if (this.searchQuery.trim()) {
+      const query = this.searchQuery.toLowerCase();
+      filtered = filtered.filter(media =>
+        media.title?.toLowerCase().includes(query) ||
+        media.description?.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply language filter
+    if (this.selectedLanguageFilter) {
+      filtered = filtered.filter(media =>
+        media.sourceLanguage === this.selectedLanguageFilter ||
+        media.destinationLanguage === this.selectedLanguageFilter
+      );
+    }
+
+    // Apply project filter
+    if (this.selectedProjectFilter) {
+      filtered = filtered.filter(media =>
+        media.projectId === this.selectedProjectFilter
+      );
+    }
+
+    this.filteredVideos = filtered;
+  }
+
+  refreshMediaList(): void {
+    this.input.skipCount = 0;
+    this.media = [];
+    this.filteredVideos = [];
+    this.loadMedia();
+    this.showMessage('Media list refreshed', 'success');
+  }
+
+  navigateToCreateMedia(): void {
+    this.router.navigate(['/media/create']);
   }
 
   viewMedia(media: MediaDto): void {
     console.log('Viewing media:', media);
-    console.log('Video URL:', media.video);
-    
-    // Debug: Check if video URL exists and is valid
-    if (!media.video) {
-      console.warn('No video URL found for media:', media);
-      this.showMessage('No video URL available for this media', 'warning');
-    } else if (media.video.trim() === '') {
-      console.warn('Empty video URL for media:', media);
-      this.showMessage('Video URL is empty', 'warning');
-    } else {
-      console.log('Video URL appears to be valid:', media.video);
-    }
-    
     this.selectedMedia = media;
     this.showVideoModal = true;
     this.resetVideoMetadata();
     this.resetVideoState();
     
-    // Try to load video using the download endpoint
+    // Try to load video
     this.loadVideoFromBackend(media.id);
   }
 
@@ -381,18 +251,19 @@ export class ListMediasComponent implements OnInit {
     });
   }
 
-  downloadVideo(): void {
-    if (!this.selectedMedia) return;
+  downloadVideo(media?: MediaDto): void {
+    const targetMedia = media || this.selectedMedia;
+    if (!targetMedia) return;
     
     this.showMessage('Starting download...', 'info');
     
-    this.mediasService.downloadVideo(this.selectedMedia.id).subscribe({
+    this.mediasService.downloadVideo(targetMedia.id).subscribe({
       next: (videoBlob: Blob) => {
         // Create download link
         const url = URL.createObjectURL(videoBlob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `${this.selectedMedia?.title || 'video'}.mp4`;
+        link.download = `${targetMedia.title || 'video'}.mp4`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -403,6 +274,44 @@ export class ListMediasComponent implements OnInit {
       error: (error) => {
         console.error('Download failed:', error);
         this.showMessage('Failed to download video', 'error');
+      }
+    });
+  }
+
+  editMedia(media: MediaDto): void {
+    this.router.navigate(['/media/edit', media.id]);
+  }
+
+  editSelectedMedia(): void {
+    if (this.selectedMedia) {
+      this.router.navigate(['/media/edit', this.selectedMedia.id]);
+      this.closeVideoModal();
+    }
+  }
+
+  deleteMedia(mediaId: string): void {
+    Swal.fire({
+      title: 'Are you sure?',
+      text: 'This action cannot be undone!',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.mediasService.delete(mediaId).subscribe({
+          next: () => {
+            this.media = this.media.filter(m => m.id !== mediaId);
+            this.applyFilters();
+            Swal.fire('Deleted!', 'The media has been deleted.', 'success');
+          },
+          error: (err) => {
+            Swal.fire('Error', 'Something went wrong while deleting.', 'error');
+            console.error('Delete failed:', err);
+          }
+        });
       }
     });
   }
@@ -421,13 +330,7 @@ export class ListMediasComponent implements OnInit {
     this.resetVideoState();
   }
 
-  editSelectedMedia(): void {
-    if (this.selectedMedia) {
-      this.router.navigate(['/media/edit', this.selectedMedia.id]);
-      this.closeVideoModal();
-    }
-  }
-
+  // Video event handlers
   onVideoLoadStart(): void {
     this.isVideoLoading = true;
     this.videoError = false;
@@ -488,70 +391,16 @@ export class ListMediasComponent implements OnInit {
     this.showMessage(`Failed to load video: ${errorMessage}`, 'error');
   }
 
-  formatDuration(seconds: number): string {
-    if (!seconds || isNaN(seconds)) return 'Unknown';
-    
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  onVideoThumbnailError(event: Event, media: MediaDto): void {
+    console.error('Video thumbnail failed to load:', media.title, media.video);
+    const videoElement = event.target as HTMLVideoElement;
+    videoElement.style.display = 'none';
   }
 
-  getLanguageName(languageCode: string): string {
-    return this.languageMap[languageCode] || languageCode || 'Not specified';
-  }
-
-  // Getters for template
-  get formattedCurrentTime(): string {
-    return this.formatTime(this.currentTime);
-  }
-
-  get formattedTotalDuration(): string {
-    return this.formatTime(this.totalDuration);
-  }
-
-  get playButtonIcon(): string {
-    return this.isPlaying ? '⏸️' : '▶️';
-  }
-
-  formatTime(seconds: number): string {
-    if (!seconds || isNaN(seconds)) return '00:00';
-    
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    
-    if (hours > 0) {
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
-
-  getUrlType(url: string): string {
-    if (!url) return 'Empty/Null';
-    if (url.startsWith('http://') || url.startsWith('https://')) return 'HTTP URL';
-    if (url.startsWith('blob:')) return 'Blob URL';
-    if (url.startsWith('data:')) return 'Data URL';
-    if (url.startsWith('/')) return 'Absolute Path';
-    if (url.includes('://')) return 'Other Protocol';
-    return 'Relative Path';
-  }
-
-  getMediaDebugInfo(media: MediaDto): string {
-    return JSON.stringify({
-      id: media.id,
-      title: media.title,
-      video: media.video,
-      description: media.description,
-      projectId: media.projectId,
-      sourceLanguage: media.sourceLanguage,
-      destinationLanguage: media.destinationLanguage,
-      countryDialect: media.countryDialect
-    }, null, 2);
+  onThumbnailLoaded(event: Event): void {
+    const video = event.target as HTMLVideoElement;
+    // Set video to first frame for thumbnail
+    video.currentTime = 1;
   }
 
   testWithSampleVideo(): void {
@@ -572,18 +421,48 @@ export class ListMediasComponent implements OnInit {
     }
   }
 
-  onThumbnailLoaded(event: Event): void {
-    const video = event.target as HTMLVideoElement;
-    // Set video to first frame for thumbnail
-    video.currentTime = 1;
-    console.log('Thumbnail loaded for video:', video.src);
+  // Utility methods
+  formatDuration(seconds: number): string {
+    if (!seconds || isNaN(seconds)) return 'Unknown';
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
   }
 
-  onThumbnailError(event: Event): void {
-    const video = event.target as HTMLVideoElement;
-    console.error('Thumbnail failed to load:', video.src);
-    // Hide the video element on error
-    video.style.display = 'none';
+  formatDate(dateString: string): string {
+    if (!dateString) return 'Unknown';
+    
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  }
+
+  getLanguageName(languageCode?: string): string {
+    if (!languageCode) return 'Not specified';
+    return this.languageMap[languageCode] || languageCode;
+  }
+
+  getUrlType(url?: string): string {
+    if (!url) return 'Empty/Null';
+    if (url.startsWith('http://') || url.startsWith('https://')) return 'HTTP URL';
+    if (url.startsWith('blob:')) return 'Blob URL';
+    if (url.startsWith('data:')) return 'Data URL';
+    if (url.startsWith('/')) return 'Absolute Path';
+    if (url.includes('://')) return 'Other Protocol';
+    return 'Relative Path';
+  }
+
+  trackByMediaId(index: number, media: MediaDto): string {
+    return media.id;
   }
 
   private resetVideoMetadata(): void {
