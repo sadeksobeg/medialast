@@ -1,639 +1,508 @@
-<div class="studio-workspace">
-  <!-- Left Sidebar -->
-  <div class="sidebar" [class.collapsed]="sidebarCollapsed">
-    <div class="sidebar-header">
-      <button class="collapse-btn" (click)="toggleSidebar()" [attr.aria-label]="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"/>
-        </svg>
-      </button>
-      <div class="logo" *ngIf="!sidebarCollapsed">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
-        </svg>
-        <span>Studio Pro</span>
+<div class="video-studio-workspace">
+  <!-- Top Navigation Bar -->
+  <header class="studio-header">
+    <div class="header-left">
+      <div class="logo-section">
+        <div class="studio-logo">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
+          </svg>
+          <span class="logo-text">Studio Pro</span>
+        </div>
       </div>
-    </div>
-
-    <!-- Search Section -->
-    <div class="search-section" *ngIf="!sidebarCollapsed">
-      <div class="search-bar">
-        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"/>
-        </svg>
-        <input 
-          type="text" 
-          placeholder="Search assets..." 
-          [(ngModel)]="searchQuery" 
-          (input)="onSearchChange()"
-          class="search-input"
-        />
-      </div>
-      <div class="quick-tags">
-        <button 
-          class="tag" 
-          *ngFor="let tag of quickTags" 
-          (click)="applyQuickTag(tag)"
-          [attr.aria-label]="'Filter by ' + tag"
-        >
-          {{ tag }}
+      
+      <div class="project-controls">
+        <button class="project-btn" (click)="toggleProjectDropdown()">
+          <span>{{ currentProjectName }}</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7,10L12,15L17,10H7Z"/>
+          </svg>
         </button>
       </div>
     </div>
 
-    <!-- Navigation Tabs -->
-    <nav class="nav-tabs" role="tablist">
-      <button 
-        class="tab-item" 
-        *ngFor="let tab of navTabs" 
-        [class.active]="activeTab === tab.id"
-        (click)="setActiveTab(tab.id)"
-        [attr.aria-selected]="activeTab === tab.id"
-        [attr.aria-controls]="tab.id + '-panel'"
-        role="tab"
-        [title]="tab.label">
-        <div class="tab-icon" [innerHTML]="tab.icon"></div>
-        <span class="tab-label" *ngIf="!sidebarCollapsed">{{ tab.label }}</span>
-        <div class="tab-indicator" *ngIf="activeTab === tab.id"></div>
-      </button>
-    </nav>
-
-    <!-- Import Button -->
-    <button class="import-btn" *ngIf="!sidebarCollapsed" (click)="openImportDialog()">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
-      </svg>
-      <span>Import Media</span>
-    </button>
-
-    <!-- Tab Content Panels -->
-    <div class="tab-content" *ngIf="!sidebarCollapsed">
-      <!-- Media Panel -->
-      <div 
-        class="content-panel" 
-        *ngIf="activeTab === 'media'"
-        [attr.id]="'media-panel'"
-        role="tabpanel"
-        [attr.aria-labelledby]="'media-tab'"
-      >
-        <div class="panel-header">
-          <h3>Media Library</h3>
-          <button class="panel-action" (click)="refreshMedia()" title="Refresh media library">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
-            </svg>
-          </button>
-        </div>
+    <div class="header-center">
+      <div class="playback-controls">
+        <button class="control-btn" (click)="skipBackward()" title="Skip backward 10s">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M11.5,12L20,18V6M11,18V6L2.5,12L11,18Z"/>
+          </svg>
+        </button>
         
-        <div class="media-grid" *ngIf="filteredMedia.length > 0; else noMediaTemplate">
-          <div 
-            class="media-item" 
-            *ngFor="let media of filteredMedia; trackBy: trackByMediaId" 
-            cdkDrag 
-            [cdkDragData]="{ type: 'media', media: media }"
-            (click)="selectMedia(media)"
-            [class.selected]="selectedMedia?.id === media.id"
-            [attr.aria-label]="'Media: ' + media.title"
-            tabindex="0"
-            (keydown.enter)="selectMedia(media)"
-            (keydown.space)="selectMedia(media)"
-          >
-            <div class="media-thumbnail">
-              <video 
-                *ngIf="media.video" 
-                [src]="media.video" 
-                preload="metadata" 
-                muted
-                (error)="onMediaThumbnailError($event, media)"
-              ></video>
-              <div class="media-placeholder" *ngIf="!media.video">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
-                </svg>
-              </div>
-              <div class="media-overlay">
-                <div class="play-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+        <button class="play-pause-btn" (click)="togglePlayPause()" [class.playing]="isPlaying">
+          <svg *ngIf="!isPlaying" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
+          </svg>
+          <svg *ngIf="isPlaying" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M14,19H18V5H14M6,19H10V5H6V19Z"/>
+          </svg>
+        </button>
+        
+        <button class="control-btn" (click)="skipForward()" title="Skip forward 10s">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M13,6V18L21.5,12M4,18L12.5,12L4,6V18Z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="time-display">
+        <span class="current-time">{{ formatTime(currentTime) }}</span>
+        <span class="separator">/</span>
+        <span class="total-time">{{ formatTime(totalDuration) }}</span>
+      </div>
+
+      <div class="zoom-controls">
+        <button class="zoom-btn" (click)="zoomOut()" title="Zoom out">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19,13H5V11H19V13Z"/>
+          </svg>
+        </button>
+        <span class="zoom-level">{{ zoomLevel }}%</span>
+        <button class="zoom-btn" (click)="zoomIn()" title="Zoom in">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="user-controls">
+        <button class="lang-btn" (click)="toggleLanguage()">
+          {{ currentLanguage }}
+        </button>
+        
+        <div class="user-avatar">
+          <img src="https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=40&h=40&dpr=1" alt="User" />
+        </div>
+      </div>
+
+      <button class="export-btn" (click)="openExportModal()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+        </svg>
+        <span>EXPORT</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <div class="studio-main">
+    <!-- Left Sidebar -->
+    <aside class="left-sidebar" [class.collapsed]="sidebarCollapsed">
+      <div class="sidebar-header">
+        <button class="collapse-btn" (click)="toggleSidebar()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z"/>
+          </svg>
+        </button>
+        
+        <div class="search-bar" *ngIf="!sidebarCollapsed">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"/>
+          </svg>
+          <input 
+            type="text" 
+            placeholder="Search assets..." 
+            [(ngModel)]="searchQuery"
+            (input)="onSearchChange()"
+            class="search-input"
+          />
+        </div>
+      </div>
+
+      <nav class="sidebar-nav" *ngIf="!sidebarCollapsed">
+        <button 
+          class="nav-tab" 
+          *ngFor="let tab of navTabs" 
+          [class.active]="activeTab === tab.id"
+          (click)="setActiveTab(tab.id)"
+        >
+          <div class="tab-icon" [innerHTML]="tab.icon"></div>
+          <span class="tab-label">{{ tab.label }}</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-content" *ngIf="!sidebarCollapsed">
+        <!-- Media Library -->
+        <div class="content-panel" *ngIf="activeTab === 'media'">
+          <div class="panel-header">
+            <h3>Media Library</h3>
+            <button class="import-btn" (click)="openImportDialog()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
+              </svg>
+              Import
+            </button>
+          </div>
+          
+          <div class="media-grid" *ngIf="filteredMedia.length > 0; else noMediaTemplate">
+            <div 
+              class="media-item" 
+              *ngFor="let media of filteredMedia; trackBy: trackByMediaId"
+              cdkDrag
+              [cdkDragData]="{ type: 'media', media: media }"
+              (click)="selectMedia(media)"
+              [class.selected]="selectedMedia?.id === media.id"
+            >
+              <div class="media-thumbnail">
+                <video 
+                  *ngIf="media.video" 
+                  [src]="media.video" 
+                  preload="metadata" 
+                  muted
+                  (error)="onMediaThumbnailError($event, media)"
+                ></video>
+                <div class="media-placeholder" *ngIf="!media.video">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
                   </svg>
                 </div>
-                <div class="media-duration" *ngIf="media.duration">
-                  {{ formatTime(media.duration) }}
-                </div>
-              </div>
-            </div>
-            <div class="media-info">
-              <span class="media-title" [title]="media.title">{{ media.title }}</span>
-              <div class="media-meta" *ngIf="media.sourceLanguage">
-                <span class="meta-tag">{{ getLanguageName(media.sourceLanguage) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <ng-template #noMediaTemplate>
-          <div class="empty-state">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
-            </svg>
-            <h4>No Media Found</h4>
-            <p>Import media files to get started</p>
-            <button class="btn-primary" (click)="openImportDialog()">Import Media</button>
-          </div>
-        </ng-template>
-      </div>
-
-      <!-- Effects Panel -->
-      <div 
-        class="content-panel" 
-        *ngIf="activeTab === 'effects'"
-        [attr.id]="'effects-panel'"
-        role="tabpanel"
-      >
-        <div class="panel-header">
-          <h3>Video Effects</h3>
-        </div>
-        <div class="effects-grid">
-          <div 
-            class="effect-item" 
-            *ngFor="let effect of videoEffects; trackBy: trackByEffectId" 
-            cdkDrag 
-            [cdkDragData]="{ type: 'effect', effect: effect }"
-            (click)="applyEffect(effect)"
-            tabindex="0"
-            (keydown.enter)="applyEffect(effect)"
-            [attr.aria-label]="'Effect: ' + effect.name"
-          >
-            <div class="effect-thumbnail">
-              <img [src]="effect.thumbnail" [alt]="effect.name" loading="lazy" />
-              <div class="effect-overlay">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2Z"/>
-                </svg>
-              </div>
-            </div>
-            <span class="effect-name">{{ effect.name }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Text Panel -->
-      <div 
-        class="content-panel" 
-        *ngIf="activeTab === 'text'"
-        [attr.id]="'text-panel'"
-        role="tabpanel"
-      >
-        <div class="panel-header">
-          <h3>Text & Titles</h3>
-        </div>
-        <div class="text-templates">
-          <button 
-            class="text-item" 
-            *ngFor="let template of titleTemplates; trackBy: trackByTemplateId" 
-            (click)="addTextElement(template)"
-            [attr.aria-label]="'Add ' + template.name"
-          >
-            <div class="text-preview">{{ template.preview }}</div>
-            <span class="text-name">{{ template.name }}</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Audio Panel -->
-      <div 
-        class="content-panel" 
-        *ngIf="activeTab === 'audio'"
-        [attr.id]="'audio-panel'"
-        role="tabpanel"
-      >
-        <div class="panel-header">
-          <h3>Audio Tools</h3>
-        </div>
-        <div class="audio-tools">
-          <button 
-            class="tool-btn" 
-            *ngFor="let tool of audioTools; trackBy: trackByToolType" 
-            (click)="openAudioTool(tool.type)"
-            [attr.aria-label]="tool.name"
-          >
-            <div class="tool-icon" [innerHTML]="tool.icon"></div>
-            <span>{{ tool.name }}</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Captions Panel -->
-      <div 
-        class="content-panel" 
-        *ngIf="activeTab === 'captions'"
-        [attr.id]="'captions-panel'"
-        role="tabpanel"
-      >
-        <div class="panel-header">
-          <h3>Captions & Transcripts</h3>
-        </div>
-        <div class="caption-tools">
-          <button class="caption-btn ai-btn" (click)="generateAutoCaption()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/>
-            </svg>
-            AI Auto-Caption
-          </button>
-          <button class="caption-btn" (click)="importSubtitles()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-            </svg>
-            Import SRT
-          </button>
-          <button class="caption-btn" (click)="smartCut()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M9,3V4H4V6H5V7.5C5,8.33 5.67,9 6.5,9C7.33,9 8,8.33 8,7.5V6H9V7H15V6H16V7.5C16,8.33 16.67,9 17.5,9C18.33,9 19,8.33 19,7.5V6H20V4H15V3H9Z"/>
-            </svg>
-            Smart Cut
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Main Content Area -->
-  <div class="main-content">
-    <!-- Top Toolbar -->
-    <div class="top-toolbar">
-      <div class="toolbar-left">
-        <div class="project-info">
-          <button class="project-dropdown" (click)="toggleProjectDropdown()">
-            <span class="project-name">{{ currentProjectName }}</span>
-            <svg class="dropdown-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M7,10L12,15L17,10H7Z"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <div class="toolbar-center">
-        <div class="history-controls">
-          <button 
-            class="history-btn" 
-            (click)="undo()" 
-            [disabled]="!canUndo" 
-            title="Undo (Ctrl+Z)"
-            [attr.aria-label]="'Undo' + (canUndo ? '' : ' (disabled)')"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12.5,8C9.85,8 7.45,9 5.6,10.6L2,7V16H11L7.38,12.38C8.77,11.22 10.54,10.5 12.5,10.5C16.04,10.5 19.05,12.81 20.1,16L22.47,15.22C21.08,11.03 17.15,8 12.5,8Z"/>
-            </svg>
-          </button>
-          <button 
-            class="history-btn" 
-            (click)="redo()" 
-            [disabled]="!canRedo" 
-            title="Redo (Ctrl+Y)"
-            [attr.aria-label]="'Redo' + (canRedo ? '' : ' (disabled)')"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M18.4,10.6C16.55,9 14.15,8 11.5,8C6.85,8 2.92,11.03 1.53,15.22L3.9,16C4.95,12.81 7.96,10.5 11.5,10.5C13.46,10.5 15.23,11.22 16.62,12.38L13,16H22V7L18.4,10.6Z"/>
-            </svg>
-          </button>
-        </div>
-
-        <div class="zoom-controls">
-          <button class="zoom-btn" (click)="zoomOut()" title="Zoom out">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19,13H5V11H19V13Z"/>
-            </svg>
-          </button>
-          <span class="zoom-level">{{ zoomLevel }}%</span>
-          <button class="zoom-btn" (click)="zoomIn()" title="Zoom in">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <div class="toolbar-right">
-        <button class="export-btn" (click)="openExportModal()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-          </svg>
-          <span>EXPORT</span>
-        </button>
-        
-        <div class="toolbar-actions">
-          <button class="toolbar-btn" (click)="shareProject()" title="Share project">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M18,16.08C17.24,16.08 16.56,16.38 16.04,16.85L8.91,12.7C8.96,12.47 9,12.24 9,12C9,11.76 8.96,11.53 8.91,11.3L15.96,7.19C16.5,7.69 17.21,8 18,8A3,3 0 0,0 21,5A3,3 0 0,0 18,2A3,3 0 0,0 15,5C15,5.24 15.04,5.47 15.09,5.7L8.04,9.81C7.5,9.31 6.79,9 6,9A3,3 0 0,0 3,12A3,3 0 0,0 6,15C6.79,15 7.5,14.69 8.04,14.19L15.16,18.34C15.11,18.55 15.08,18.77 15.08,19C15.08,20.61 16.39,21.91 18,21.91C19.61,21.91 20.92,20.61 20.92,19C20.92,17.39 19.61,16.08 18,16.08Z"/>
-            </svg>
-          </button>
-          <button class="toolbar-btn" (click)="openSettings()" title="Project settings">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.22,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.22,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Preview Panel -->
-    <div class="preview-panel">
-      <div class="video-container">
-        <video 
-          *ngIf="selectedVideoForPreview; else videoPlaceholder" 
-          [src]="selectedVideoForPreview" 
-          #videoPlayer
-          class="video-preview"
-          (loadedmetadata)="onVideoLoaded($event)"
-          (timeupdate)="onTimeUpdate($event)"
-          (play)="isPlaying = true"
-          (pause)="isPlaying = false"
-          controls
-        ></video>
-        
-        <ng-template #videoPlaceholder>
-          <div class="video-placeholder">
-            <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
-            </svg>
-            <p>Select media to preview</p>
-          </div>
-        </ng-template>
-      </div>
-    </div>
-
-    <!-- Timeline Section -->
-    <div class="timeline-section">
-      <div class="timeline-header">
-        <div class="timeline-controls">
-          <button class="timeline-btn" (click)="fitToWindow()" title="Fit timeline to window">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M9,9H15V15H9V9M11,11V13H13V11H11M2,3V21H4V19H6V21H8V3H6V5H4V3H2M16,3V21H18V19H20V21H22V3H20V5H18V3H16Z"/>
-            </svg>
-          </button>
-          <div class="timeline-zoom-control">
-            <input 
-              type="range" 
-              min="25" 
-              max="400" 
-              [(ngModel)]="timelineZoom" 
-              (input)="onTimelineZoomChange()" 
-              class="zoom-slider"
-              aria-label="Timeline zoom level"
-            />
-            <span class="zoom-display">{{ timelineZoom }}%</span>
-          </div>
-        </div>
-        
-        <div class="time-ruler">
-          <div 
-            class="time-marker" 
-            *ngFor="let marker of timeMarkers; trackBy: trackByMarkerTime" 
-            [style.left.%]="marker.position"
-          >
-            <span class="marker-time">{{ marker.time }}</span>
-            <div class="marker-line"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="timeline-tracks">
-        <!-- Video Tracks -->
-        <div class="track-group">
-          <div class="track-header">
-            <span class="track-type">VIDEO</span>
-          </div>
-          <div class="tracks-container">
-            <div 
-              class="track video-track" 
-              *ngFor="let trackIndex of videoTracks; trackBy: trackByIndex"
-              cdkDropList
-              [cdkDropListData]="{ type: 'video', index: trackIndex }"
-              (cdkDropListDropped)="onClipDrop($event)"
-            >
-              <div class="track-controls">
-                <button 
-                  class="track-btn mute-btn" 
-                  [class.active]="isTrackMuted('video', trackIndex)" 
-                  (click)="toggleTrackMute('video', trackIndex)"
-                  [title]="'Toggle mute for video track ' + (trackIndex + 1)"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z"/>
-                  </svg>
-                </button>
-                <button 
-                  class="track-btn solo-btn" 
-                  [class.active]="isTrackSolo('video', trackIndex)" 
-                  (click)="toggleTrackSolo('video', trackIndex)"
-                  [title]="'Toggle solo for video track ' + (trackIndex + 1)"
-                >
-                  S
-                </button>
-              </div>
-              
-              <div class="track-content">
-                <div 
-                  class="clip video-clip" 
-                  *ngFor="let clip of getClipsForTrack('video', trackIndex); trackBy: trackByClipId"
-                  [class.selected]="selectedClip?.id === clip.id"
-                  [style.left.px]="getClipPosition(clip)"
-                  [style.width.px]="getClipWidth(clip)"
-                  (click)="selectClip(clip)"
-                  (dblclick)="editClip(clip)"
-                  cdkDrag
-                  [cdkDragData]="clip"
-                  tabindex="0"
-                  [attr.aria-label]="'Video clip: ' + clip.name"
-                >
-                  <div class="clip-content">
-                    <div class="clip-thumbnail" *ngIf="clip.thumbnail">
-                      <img [src]="clip.thumbnail" [alt]="clip.name" loading="lazy" />
-                    </div>
-                    <div class="clip-info">
-                      <span class="clip-name">{{ clip.name }}</span>
-                      <span class="clip-duration">{{ formatTime(clip.duration) }}</span>
-                    </div>
+                <div class="media-overlay">
+                  <div class="play-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
+                    </svg>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Audio Tracks -->
-        <div class="track-group">
-          <div class="track-header">
-            <span class="track-type">AUDIO</span>
-          </div>
-          <div class="tracks-container">
-            <div 
-              class="track audio-track" 
-              *ngFor="let trackIndex of audioTracks; trackBy: trackByIndex"
-              cdkDropList
-              [cdkDropListData]="{ type: 'audio', index: trackIndex }"
-              (cdkDropListDropped)="onClipDrop($event)"
-            >
-              <div class="track-controls">
-                <button 
-                  class="track-btn mute-btn" 
-                  [class.active]="isTrackMuted('audio', trackIndex)" 
-                  (click)="toggleTrackMute('audio', trackIndex)"
-                  [title]="'Toggle mute for audio track ' + (trackIndex + 1)"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M3,9V15H7L12,20V4L7,9H3M16.59,12L14,9.41L15.41,8L18,10.59L20.59,8L22,9.41L19.41,12L22,14.59L20.59,16L18,13.41L15.41,16L14,14.59L16.59,12Z"/>
-                  </svg>
-                </button>
-                <button 
-                  class="track-btn solo-btn" 
-                  [class.active]="isTrackSolo('audio', trackIndex)" 
-                  (click)="toggleTrackSolo('audio', trackIndex)"
-                  [title]="'Toggle solo for audio track ' + (trackIndex + 1)"
-                >
-                  S
-                </button>
-                <div class="volume-fader">
-                  <input 
-                    type="range" 
-                    min="0" 
-                    max="100" 
-                    [value]="getTrackVolume('audio', trackIndex)" 
-                    (input)="setTrackVolume('audio', trackIndex, $event)" 
-                    class="fader"
-                    [attr.aria-label]="'Volume for audio track ' + (trackIndex + 1)"
-                  />
-                </div>
-              </div>
-              
-              <div class="track-content">
-                <div 
-                  class="clip audio-clip" 
-                  *ngFor="let clip of getClipsForTrack('audio', trackIndex); trackBy: trackByClipId"
-                  [class.selected]="selectedClip?.id === clip.id"
-                  [style.left.px]="getClipPosition(clip)"
-                  [style.width.px]="getClipWidth(clip)"
-                  (click)="selectClip(clip)"
-                  (dblclick)="editClip(clip)"
-                  cdkDrag
-                  [cdkDragData]="clip"
-                  tabindex="0"
-                  [attr.aria-label]="'Audio clip: ' + clip.name"
-                >
-                  <div class="clip-content">
-                    <div class="waveform" *ngIf="clip.waveform">
-                      <div 
-                        class="waveform-bar" 
-                        *ngFor="let bar of clip.waveform; trackBy: trackByIndex"
-                        [style.height.%]="bar"
-                      ></div>
-                    </div>
-                    <div class="clip-info">
-                      <span class="clip-name">{{ clip.name }}</span>
-                    </div>
-                  </div>
+              <div class="media-info">
+                <span class="media-title">{{ media.title }}</span>
+                <div class="media-meta">
+                  <span class="duration">{{ formatTime(media.duration || 30) }}</span>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Playhead -->
-      <div class="playhead" [style.left.px]="getPlayheadPosition()">
-        <div class="playhead-line"></div>
-        <div class="playhead-handle" (mousedown)="startPlayheadDrag($event)"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Right Inspector Panel -->
-  <div class="inspector-panel" [class.collapsed]="inspectorCollapsed">
-    <div class="inspector-header">
-      <h3>Inspector</h3>
-      <button class="collapse-btn" (click)="toggleInspector()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
-        </svg>
-      </button>
-    </div>
-
-    <div class="inspector-content" *ngIf="!inspectorCollapsed">
-      <!-- Selected Clip Properties -->
-      <div class="inspector-section" *ngIf="selectedClip">
-        <h4>Clip Properties</h4>
-        <div class="property-group">
-          <label for="clip-name">Name</label>
-          <input 
-            id="clip-name"
-            type="text" 
-            [(ngModel)]="selectedClip.name" 
-            class="property-input"
-          />
-        </div>
-        <div class="property-group">
-          <label>Duration</label>
-          <input 
-            type="text" 
-            [value]="formatTime(selectedClip.duration)" 
-            class="property-input" 
-            readonly
-          />
-        </div>
-      </div>
-
-      <!-- Video Properties -->
-      <div class="inspector-section" *ngIf="selectedClip?.type === 'video'">
-        <h4>Video</h4>
-        <div class="property-group">
-          <label for="opacity-slider">Opacity</label>
-          <div class="slider-group">
-            <input 
-              id="opacity-slider"
-              type="range" 
-              min="0" 
-              max="100" 
-              [(ngModel)]="selectedClip.opacity" 
-              class="property-slider"
-            />
-            <span class="property-value">{{ selectedClip.opacity }}%</span>
-          </div>
-        </div>
-        <div class="property-group">
-          <label for="scale-slider">Scale</label>
-          <div class="slider-group">
-            <input 
-              id="scale-slider"
-              type="range" 
-              min="10" 
-              max="500" 
-              [(ngModel)]="selectedClip.scale" 
-              class="property-slider"
-            />
-            <span class="property-value">{{ selectedClip.scale }}%</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Effects -->
-      <div class="inspector-section">
-        <h4>Effects</h4>
-        <div class="effects-list" *ngIf="selectedClip?.effects && selectedClip.effects.length > 0; else noEffectsTemplate">
-          <div class="effect-item" *ngFor="let effect of selectedClip.effects; trackBy: trackByEffectId">
-            <span class="effect-name">{{ effect.name }}</span>
-            <button class="remove-effect" (click)="removeEffect(effect)" [attr.aria-label]="'Remove ' + effect.name + ' effect'">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+          <ng-template #noMediaTemplate>
+            <div class="empty-state">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
               </svg>
+              <h4>No Media Found</h4>
+              <p>Import media files to get started</p>
+              <button class="btn-primary" (click)="openImportDialog()">Import Media</button>
+            </div>
+          </ng-template>
+        </div>
+
+        <!-- Effects Panel -->
+        <div class="content-panel" *ngIf="activeTab === 'effects'">
+          <div class="panel-header">
+            <h3>Video Effects</h3>
+          </div>
+          <div class="effects-grid">
+            <div 
+              class="effect-item" 
+              *ngFor="let effect of videoEffects; trackBy: trackByEffectId"
+              cdkDrag
+              [cdkDragData]="{ type: 'effect', effect: effect }"
+              (click)="applyEffect(effect)"
+            >
+              <div class="effect-thumbnail">
+                <img [src]="effect.thumbnail" [alt]="effect.name" />
+                <div class="effect-overlay">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2Z"/>
+                  </svg>
+                </div>
+              </div>
+              <span class="effect-name">{{ effect.name }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Text & Titles -->
+        <div class="content-panel" *ngIf="activeTab === 'text'">
+          <div class="panel-header">
+            <h3>Text & Titles</h3>
+          </div>
+          <div class="text-templates">
+            <button 
+              class="text-item" 
+              *ngFor="let template of titleTemplates; trackBy: trackByTemplateId"
+              (click)="addTextElement(template)"
+            >
+              <div class="text-preview">{{ template.preview }}</div>
+              <span class="text-name">{{ template.name }}</span>
             </button>
           </div>
         </div>
-        <ng-template #noEffectsTemplate>
-          <p class="no-effects">No effects applied</p>
-        </ng-template>
+
+        <!-- Audio Tools -->
+        <div class="content-panel" *ngIf="activeTab === 'audio'">
+          <div class="panel-header">
+            <h3>Audio Tools</h3>
+          </div>
+          <div class="audio-tools">
+            <button 
+              class="tool-btn" 
+              *ngFor="let tool of audioTools; trackBy: trackByToolType"
+              (click)="openAudioTool(tool.type)"
+            >
+              <div class="tool-icon" [innerHTML]="tool.icon"></div>
+              <span>{{ tool.name }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Captions -->
+        <div class="content-panel" *ngIf="activeTab === 'captions'">
+          <div class="panel-header">
+            <h3>Captions & Subtitles</h3>
+          </div>
+          <div class="caption-tools">
+            <button class="caption-btn ai-btn" (click)="generateAutoCaption()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/>
+              </svg>
+              AI Auto-Caption
+            </button>
+            <button class="caption-btn" (click)="importSubtitles()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+              </svg>
+              Import SRT
+            </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Central Preview Area -->
+    <main class="preview-area">
+      <div class="preview-container">
+        <div class="video-preview">
+          <video 
+            *ngIf="selectedVideoForPreview; else videoPlaceholder" 
+            [src]="selectedVideoForPreview" 
+            #videoPlayer
+            class="preview-video"
+            (loadedmetadata)="onVideoLoaded($event)"
+            (timeupdate)="onTimeUpdate($event)"
+            (play)="isPlaying = true"
+            (pause)="isPlaying = false"
+            controls
+          ></video>
+          
+          <ng-template #videoPlaceholder>
+            <div class="video-placeholder">
+              <svg width="80" height="80" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
+              </svg>
+              <h3>Drop media here to preview</h3>
+              <p>Select a video from your media library</p>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+    </main>
+
+    <!-- Right Inspector Panel -->
+    <aside class="right-sidebar" [class.collapsed]="inspectorCollapsed">
+      <div class="inspector-header">
+        <h3>Inspector</h3>
+        <button class="collapse-btn" (click)="toggleInspector()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="inspector-content" *ngIf="!inspectorCollapsed">
+        <div class="inspector-section" *ngIf="selectedClip">
+          <h4>Clip Properties</h4>
+          <div class="property-group">
+            <label>Name</label>
+            <input type="text" [(ngModel)]="selectedClip.name" class="property-input" />
+          </div>
+          <div class="property-group">
+            <label>Duration</label>
+            <input type="text" [value]="formatTime(selectedClip.duration)" class="property-input" readonly />
+          </div>
+        </div>
+
+        <div class="inspector-section" *ngIf="selectedClip?.type === 'video'">
+          <h4>Video Properties</h4>
+          <div class="property-group">
+            <label>Opacity</label>
+            <div class="slider-group">
+              <input type="range" min="0" max="100" [(ngModel)]="selectedClip.opacity" class="property-slider" />
+              <span class="property-value">{{ selectedClip.opacity }}%</span>
+            </div>
+          </div>
+          <div class="property-group">
+            <label>Scale</label>
+            <div class="slider-group">
+              <input type="range" min="10" max="500" [(ngModel)]="selectedClip.scale" class="property-slider" />
+              <span class="property-value">{{ selectedClip.scale }}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Timeline Section -->
+  <section class="timeline-section">
+    <div class="timeline-header">
+      <div class="timeline-controls">
+        <button class="timeline-btn" (click)="fitToWindow()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9,9H15V15H9V9M11,11V13H13V11H11M2,3V21H4V19H6V21H8V3H6V5H4V3H2M16,3V21H18V19H20V21H22V3H20V5H18V3H16Z"/>
+          </svg>
+          Fit
+        </button>
+        
+        <div class="timeline-zoom">
+          <input 
+            type="range" 
+            min="25" 
+            max="400" 
+            [(ngModel)]="timelineZoom" 
+            (input)="onTimelineZoomChange()" 
+            class="zoom-slider"
+          />
+          <span>{{ timelineZoom }}%</span>
+        </div>
+      </div>
+      
+      <div class="time-ruler">
+        <div 
+          class="time-marker" 
+          *ngFor="let marker of timeMarkers; trackBy: trackByMarkerTime"
+          [style.left.%]="marker.position"
+        >
+          <span>{{ marker.time }}</span>
+          <div class="marker-line"></div>
+        </div>
       </div>
     </div>
-  </div>
+
+    <div class="timeline-tracks">
+      <!-- Video Tracks -->
+      <div class="track-group">
+        <div class="track-header">
+          <span class="track-type">VIDEO</span>
+        </div>
+        <div class="tracks-container">
+          <div 
+            class="track video-track" 
+            *ngFor="let trackIndex of videoTracks; trackBy: trackByIndex"
+            cdkDropList
+            [cdkDropListData]="{ type: 'video', index: trackIndex }"
+            (cdkDropListDropped)="onClipDrop($event)"
+          >
+            <div class="track-controls">
+              <button 
+                class="track-btn mute-btn" 
+                [class.active]="isTrackMuted('video', trackIndex)" 
+                (click)="toggleTrackMute('video', trackIndex)"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z"/>
+                </svg>
+              </button>
+            </div>
+            
+            <div class="track-content">
+              <div 
+                class="clip video-clip" 
+                *ngFor="let clip of getClipsForTrack('video', trackIndex); trackBy: trackByClipId"
+                [class.selected]="selectedClip?.id === clip.id"
+                [style.left.px]="getClipPosition(clip)"
+                [style.width.px]="getClipWidth(clip)"
+                (click)="selectClip(clip)"
+                cdkDrag
+                [cdkDragData]="clip"
+              >
+                <div class="clip-content">
+                  <div class="clip-thumbnail" *ngIf="clip.thumbnail">
+                    <img [src]="clip.thumbnail" [alt]="clip.name" />
+                  </div>
+                  <div class="clip-info">
+                    <span class="clip-name">{{ clip.name }}</span>
+                    <span class="clip-duration">{{ formatTime(clip.duration) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Audio Tracks -->
+      <div class="track-group">
+        <div class="track-header">
+          <span class="track-type">AUDIO</span>
+        </div>
+        <div class="tracks-container">
+          <div 
+            class="track audio-track" 
+            *ngFor="let trackIndex of audioTracks; trackBy: trackByIndex"
+            cdkDropList
+            [cdkDropListData]="{ type: 'audio', index: trackIndex }"
+            (cdkDropListDropped)="onClipDrop($event)"
+          >
+            <div class="track-controls">
+              <button 
+                class="track-btn mute-btn" 
+                [class.active]="isTrackMuted('audio', trackIndex)" 
+                (click)="toggleTrackMute('audio', trackIndex)"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M3,9V15H7L12,20V4L7,9H3M16.59,12L14,9.41L15.41,8L18,10.59L20.59,8L22,9.41L19.41,12L22,14.59L20.59,16L18,13.41L15.41,16L14,14.59L16.59,12Z"/>
+                </svg>
+              </button>
+              <div class="volume-fader">
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  [value]="getTrackVolume('audio', trackIndex)" 
+                  (input)="setTrackVolume('audio', trackIndex, $event)" 
+                  class="fader"
+                />
+              </div>
+            </div>
+            
+            <div class="track-content">
+              <div 
+                class="clip audio-clip" 
+                *ngFor="let clip of getClipsForTrack('audio', trackIndex); trackBy: trackByClipId"
+                [class.selected]="selectedClip?.id === clip.id"
+                [style.left.px]="getClipPosition(clip)"
+                [style.width.px]="getClipWidth(clip)"
+                (click)="selectClip(clip)"
+                cdkDrag
+                [cdkDragData]="clip"
+              >
+                <div class="clip-content">
+                  <div class="waveform" *ngIf="clip.waveform">
+                    <div 
+                      class="waveform-bar" 
+                      *ngFor="let bar of clip.waveform; trackBy: trackByIndex"
+                      [style.height.%]="bar"
+                    ></div>
+                  </div>
+                  <div class="clip-info">
+                    <span class="clip-name">{{ clip.name }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Playhead -->
+    <div class="playhead" [style.left.px]="getPlayheadPosition()">
+      <div class="playhead-line"></div>
+      <div class="playhead-handle" (mousedown)="startPlayheadDrag($event)"></div>
+    </div>
+  </section>
 
   <!-- Loading Overlay -->
   <div class="loading-overlay" *ngIf="isLoading">
@@ -642,21 +511,21 @@
   </div>
 
   <!-- Toast Notifications -->
-  <div class="toast-container" *ngIf="toasts.length > 0">
+  <div class="toast-container">
     <div 
       class="toast" 
-      *ngFor="let toast of toasts; trackBy: trackByToastId" 
+      *ngFor="let toast of toasts; trackBy: trackByToastId"
       [class]="'toast-' + toast.type"
       [@slideIn]
     >
       <div class="toast-content">
-        <svg class="toast-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <svg class="toast-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M11,16.5L18,9.5L16.5,8L11,13.5L7.5,10L6,11.5L11,16.5Z"/>
         </svg>
         <span>{{ toast.message }}</span>
       </div>
-      <button class="toast-close" (click)="dismissToast(toast.id)" aria-label="Dismiss notification">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <button class="toast-close" (click)="dismissToast(toast.id)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
           <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
         </svg>
       </button>

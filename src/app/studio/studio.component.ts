@@ -28,14 +28,12 @@ interface Clip {
   brightness?: number;
   contrast?: number;
   saturation?: number;
-  lut?: string;
   
   // Audio properties
   volume?: number;
   pan?: number;
   pitch?: number;
   waveform?: number[];
-  volumeEnvelope?: { time: number; value: number }[];
   
   // Effects and keyframes
   effects?: Effect[];
@@ -147,10 +145,10 @@ export class StudioComponent implements OnInit, OnDestroy {
 
   // Search and filtering
   searchQuery: string = '';
-  quickTags: string[] = ['blur', 'zoom', 'retro', 'shake', 'rainbow', 'voice', 'music'];
 
   // Project state
   currentProjectName: string = 'Untitled Project';
+  currentLanguage: string = 'EN';
   
   // Media
   allMedia: MediaDto[] = [];
@@ -179,10 +177,6 @@ export class StudioComponent implements OnInit, OnDestroy {
   mutedTracks: { [key: string]: boolean } = {};
   soloTracks: { [key: string]: boolean } = {};
   trackVolumes: { [key: string]: number } = {};
-
-  // Undo/Redo
-  undoStack: Clip[][] = [];
-  redoStack: Clip[][] = [];
 
   // Effects and templates
   videoEffects: Effect[] = [
@@ -273,7 +267,6 @@ export class StudioComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadMedia();
-    this.saveStateForUndo();
     this.setupKeyboardShortcuts();
   }
 
@@ -291,27 +284,6 @@ export class StudioComponent implements OnInit, OnDestroy {
   }
 
   private handleKeyboardShortcuts(event: KeyboardEvent): void {
-    if (event.ctrlKey || event.metaKey) {
-      switch (event.key) {
-        case 'z':
-          event.preventDefault();
-          if (event.shiftKey) {
-            this.redo();
-          } else {
-            this.undo();
-          }
-          break;
-        case 'y':
-          event.preventDefault();
-          this.redo();
-          break;
-        case 's':
-          event.preventDefault();
-          this.saveProject();
-          break;
-      }
-    }
-    
     // Spacebar for play/pause
     if (event.code === 'Space' && event.target === document.body) {
       event.preventDefault();
@@ -329,8 +301,12 @@ export class StudioComponent implements OnInit, OnDestroy {
   }
 
   toggleProjectDropdown(): void {
-    // Implement project dropdown logic
     this.showToast('Project dropdown opened', 'info');
+  }
+
+  toggleLanguage(): void {
+    this.currentLanguage = this.currentLanguage === 'EN' ? 'AR' : 'EN';
+    this.showToast(`Language switched to ${this.currentLanguage}`, 'info');
   }
 
   setActiveTab(tabId: string): void {
@@ -342,11 +318,6 @@ export class StudioComponent implements OnInit, OnDestroy {
 
   // Search and filtering
   onSearchChange(): void {
-    this.filterMedia();
-  }
-
-  applyQuickTag(tag: string): void {
-    this.searchQuery = tag;
     this.filterMedia();
   }
 
@@ -390,10 +361,6 @@ export class StudioComponent implements OnInit, OnDestroy {
     });
   }
 
-  refreshMedia(): void {
-    this.loadMedia();
-  }
-
   selectMedia(media: MediaDto): void {
     this.selectedMedia = media;
     this.selectedVideoForPreview = media.video || '';
@@ -418,6 +385,21 @@ export class StudioComponent implements OnInit, OnDestroy {
       } else {
         this.videoPlayer.nativeElement.play();
       }
+    }
+  }
+
+  skipBackward(): void {
+    if (this.videoPlayer?.nativeElement) {
+      this.videoPlayer.nativeElement.currentTime = Math.max(0, this.videoPlayer.nativeElement.currentTime - 10);
+    }
+  }
+
+  skipForward(): void {
+    if (this.videoPlayer?.nativeElement) {
+      this.videoPlayer.nativeElement.currentTime = Math.min(
+        this.videoPlayer.nativeElement.duration || 0, 
+        this.videoPlayer.nativeElement.currentTime + 10
+      );
     }
   }
 
@@ -524,11 +506,6 @@ export class StudioComponent implements OnInit, OnDestroy {
     this.showToast(`Selected: ${clip.name}`, 'info');
   }
 
-  editClip(clip: Clip): void {
-    this.showToast(`Editing: ${clip.name}`, 'info');
-    // Open clip editor modal or inline editor
-  }
-
   onClipDrop(event: CdkDragDrop<any>): void {
     const dragData = event.item.data;
     const dropData = event.container.data;
@@ -541,8 +518,6 @@ export class StudioComponent implements OnInit, OnDestroy {
   }
 
   private addMediaToTimeline(media: MediaDto, trackType: 'video' | 'audio', trackIndex: number): void {
-    this.saveStateForUndo();
-    
     const newClip: Clip = {
       id: `${trackType}-${Date.now()}`,
       name: media.title || 'Untitled',
@@ -603,7 +578,6 @@ export class StudioComponent implements OnInit, OnDestroy {
   // Effects and tools
   applyEffect(effect: Effect): void {
     if (this.selectedClip) {
-      this.saveStateForUndo();
       if (!this.selectedClip.effects) {
         this.selectedClip.effects = [];
       }
@@ -614,19 +588,7 @@ export class StudioComponent implements OnInit, OnDestroy {
     }
   }
 
-  removeEffect(effect: Effect): void {
-    if (this.selectedClip && this.selectedClip.effects) {
-      const index = this.selectedClip.effects.findIndex(e => e.id === effect.id);
-      if (index !== -1) {
-        this.selectedClip.effects.splice(index, 1);
-        this.showToast(`Removed ${effect.name} effect`, 'success');
-      }
-    }
-  }
-
   addTextElement(template: TitleTemplate): void {
-    this.saveStateForUndo();
-    
     const textClip: Clip = {
       id: `text-${Date.now()}`,
       name: template.name,
@@ -651,7 +613,6 @@ export class StudioComponent implements OnInit, OnDestroy {
     const tool = this.audioTools.find(t => t.type === toolType);
     if (tool) {
       this.showToast(`Opening ${tool.name}...`, 'info');
-      // Implement audio tool logic
     }
   }
 
@@ -660,7 +621,6 @@ export class StudioComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.loadingMessage = 'Generating automatic captions...';
     
-    // Simulate AI caption generation
     setTimeout(() => {
       this.isLoading = false;
       this.showToast('Captions generated successfully!', 'success');
@@ -683,71 +643,9 @@ export class StudioComponent implements OnInit, OnDestroy {
     input.click();
   }
 
-  smartCut(): void {
-    this.isLoading = true;
-    this.loadingMessage = 'Analyzing audio for smart cuts...';
-    
-    setTimeout(() => {
-      this.isLoading = false;
-      this.showToast('Smart cuts applied successfully!', 'success');
-    }, 2500);
-  }
-
-  // Project management
-  shareProject(): void {
-    const shareUrl = `${window.location.origin}/studio?project=${Date.now()}`;
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      this.showToast('Share link copied to clipboard!', 'success');
-    }).catch(() => {
-      this.showToast('Failed to copy share link', 'error');
-    });
-  }
-
-  openSettings(): void {
-    this.showToast('Opening project settings...', 'info');
-  }
-
+  // Export
   openExportModal(): void {
     this.showToast('Opening export settings...', 'info');
-  }
-
-  saveProject(): void {
-    this.showToast('Project saved successfully!', 'success');
-  }
-
-  // Undo/Redo
-  undo(): void {
-    if (this.undoStack.length > 1) {
-      this.redoStack.push([...this.clips]);
-      this.undoStack.pop();
-      this.clips = [...this.undoStack[this.undoStack.length - 1]];
-      this.showToast('Undid last action', 'info');
-    }
-  }
-
-  redo(): void {
-    if (this.redoStack.length > 0) {
-      this.undoStack.push([...this.clips]);
-      this.clips = [...this.redoStack.pop()!];
-      this.showToast('Redid last action', 'info');
-    }
-  }
-
-  get canUndo(): boolean {
-    return this.undoStack.length > 1;
-  }
-
-  get canRedo(): boolean {
-    return this.redoStack.length > 0;
-  }
-
-  private saveStateForUndo(): void {
-    this.undoStack.push([...this.clips]);
-    this.redoStack = [];
-    
-    if (this.undoStack.length > 50) {
-      this.undoStack.shift();
-    }
   }
 
   // Utility methods
@@ -762,17 +660,6 @@ export class StudioComponent implements OnInit, OnDestroy {
       return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
-
-  getLanguageName(languageCode?: string): string {
-    const languageMap: { [key: string]: string } = {
-      'en': 'English', 'es': 'Spanish', 'fr': 'French', 'de': 'German',
-      'it': 'Italian', 'pt': 'Portuguese', 'ru': 'Russian', 'ja': 'Japanese',
-      'ko': 'Korean', 'zh': 'Chinese', 'ar': 'Arabic', 'hi': 'Hindi'
-    };
-    
-    if (!languageCode) return 'Not specified';
-    return languageMap[languageCode] || languageCode;
   }
 
   // TrackBy functions for performance
