@@ -1,109 +1,187 @@
-import { Component, OnInit, ViewChild, ElementRef, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, OnDestroy, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { MediaService } from '../proxy/medias/media.service';
 import { MediaDto } from '../proxy/medias/models';
 import { Router } from '@angular/router';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 
-// Enhanced interfaces for professional video editing
-interface Clip {
+// OpenShot-inspired interfaces for professional video editing
+interface Timeline {
   id: string;
   name: string;
-  type: 'video' | 'audio' | 'text' | 'effect' | 'transition';
-  trackType: 'video' | 'audio' | 'text';
-  trackIndex: number;
-  inPoint: number;
-  outPoint: number;
+  fps: number;
+  width: number;
+  height: number;
+  sample_rate: number;
+  channels: number;
+  channel_layout: number;
   duration: number;
-  startTime: number;
-  endTime: number;
-  src?: string;
-  thumbnail?: string;
-  mediaId?: string;
+  scale: number;
+  tick_pixels: number;
+  playhead_position: number;
+  layers: Layer[];
+}
+
+interface Layer {
+  id: string;
+  number: number;
+  y: number;
+  lock: boolean;
+  label: string;
+  clips: Clip[];
+}
+
+interface Clip {
+  id: string;
+  layer: number;
+  position: number;
+  start: number;
+  end: number;
+  duration: number;
+  file_id?: string;
+  title: string;
+  reader?: FileReader;
   
-  // Video properties
-  opacity?: number;
-  scale?: number;
-  rotation?: number;
-  brightness?: number;
-  contrast?: number;
-  saturation?: number;
+  // Transform properties (OpenShot style)
+  gravity: number;
+  scale: number;
+  scale_x: number;
+  scale_y: number;
+  location_x: number;
+  location_y: number;
+  rotation: number;
+  alpha: number;
   
   // Audio properties
-  volume?: number;
-  pan?: number;
-  pitch?: number;
+  volume: number;
+  channel_filter: number;
+  channel_mapping: number;
+  
+  // Effects
+  effects: Effect[];
+  
+  // Keyframes
+  keyframes: { [property: string]: Keyframe[] };
+  
+  // Waveform data
   waveform?: number[];
   
-  // Effects and keyframes
-  effects?: Effect[];
-  keyframes?: Keyframe[];
+  // Thumbnail
+  thumbnail?: string;
+  
+  // Type
+  type: 'video' | 'audio' | 'image' | 'text';
 }
 
 interface Effect {
   id: string;
-  name: string;
   type: string;
-  thumbnail: string;
-  category: 'color' | 'blur' | 'distortion' | 'artistic' | 'transition';
-  parameters?: any;
+  class_name: string;
+  short_name: string;
+  description: string;
+  has_audio: boolean;
+  has_video: boolean;
+  order: number;
+  params: { [key: string]: any };
 }
 
 interface Keyframe {
+  co: [number, number]; // [frame, value]
+  interpolation: number; // 0=Bezier, 1=Linear, 2=Constant
+  handle_left: [number, number];
+  handle_right: [number, number];
+}
+
+interface FileReader {
   id: string;
-  time: number;
-  property: string;
-  value: any;
-  easing?: string;
+  path: string;
+  media_type: string;
+  has_video: boolean;
+  has_audio: boolean;
+  duration: number;
+  fps: number;
+  width: number;
+  height: number;
+  pixel_ratio: number;
+  display_ratio: number;
+  sample_rate: number;
+  channels: number;
+  channel_layout: number;
+  acodec: string;
+  vcodec: string;
+  video_bit_rate: number;
+  audio_bit_rate: number;
+  video_stream_index: number;
+  audio_stream_index: number;
+  video_timebase: number;
+  audio_timebase: number;
+  interlaced_frame: boolean;
+  top_field_first: boolean;
 }
 
-interface TitleTemplate {
+interface Project {
   id: string;
-  name: string;
-  preview: string;
-  style: any;
-}
-
-interface AudioTool {
-  type: string;
-  name: string;
-  icon: string;
-}
-
-interface NavTab {
-  id: string;
-  label: string;
-  icon: string;
-}
-
-interface TimeMarker {
-  time: string;
-  position: number;
-}
-
-interface Toast {
-  id: string;
-  message: string;
-  type: 'success' | 'error' | 'info' | 'warning';
-}
-
-interface ExportSettings {
-  resolution: string;
-  quality: string;
-  format: string;
-}
-
-interface ContextMenu {
-  visible: boolean;
-  x: number;
-  y: number;
-  clip?: Clip;
-}
-
-interface UndoRedoState {
+  version: string;
+  width: number;
+  height: number;
+  fps: number;
+  sample_rate: number;
+  channels: number;
+  channel_layout: number;
+  settings: ProjectSettings;
   clips: Clip[];
-  selectedClip: Clip | null;
+  effects: Effect[];
+  files: FileReader[];
+  layers: Layer[];
+  markers: Marker[];
+  profile: string;
+  target: string;
+  history: HistoryState[];
+}
+
+interface ProjectSettings {
+  width: number;
+  height: number;
+  fps: number;
+  sample_rate: number;
+  channels: number;
+  channel_layout: number;
+  video_codec: string;
+  audio_codec: string;
+  video_bitrate: number;
+  audio_bitrate: number;
+  quality: string;
+}
+
+interface Marker {
+  id: string;
+  position: number;
+  icon: string;
+  comment: string;
+}
+
+interface HistoryState {
+  id: string;
+  type: string;
+  description: string;
+  data: any;
   timestamp: number;
+}
+
+interface Tool {
+  name: string;
+  icon: string;
+  cursor: string;
+  tooltip: string;
+  shortcut: string;
+}
+
+interface PreviewSettings {
+  quality: number;
+  fps: number;
+  width: number;
+  height: number;
+  aspect_ratio: string;
 }
 
 @Component({
@@ -120,27 +198,102 @@ interface UndoRedoState {
       transition(':leave', [
         animate('300ms ease-in-out', style({ transform: 'translateX(100%)', opacity: 0 }))
       ])
+    ]),
+    trigger('fadeInOut', [
+      transition(':enter', [
+        style({ opacity: 0 }),
+        animate('200ms ease-in', style({ opacity: 1 }))
+      ]),
+      transition(':leave', [
+        animate('200ms ease-out', style({ opacity: 0 }))
+      ])
     ])
   ]
 })
 export class StudioComponent implements OnInit, OnDestroy {
   @ViewChild('videoPlayer') videoPlayer!: ElementRef<HTMLVideoElement>;
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('timelineContainer') timelineContainer!: ElementRef<HTMLDivElement>;
+
+  // OpenShot-inspired project structure
+  project: Project = {
+    id: 'project-' + Date.now(),
+    version: '3.0.0',
+    width: 1920,
+    height: 1080,
+    fps: 30.0,
+    sample_rate: 44100,
+    channels: 2,
+    channel_layout: 3,
+    settings: {
+      width: 1920,
+      height: 1080,
+      fps: 30.0,
+      sample_rate: 44100,
+      channels: 2,
+      channel_layout: 3,
+      video_codec: 'libx264',
+      audio_codec: 'aac',
+      video_bitrate: 8000000,
+      audio_bitrate: 192000,
+      quality: 'high'
+    },
+    clips: [],
+    effects: [],
+    files: [],
+    layers: [],
+    markers: [],
+    profile: 'HD 1080p 30 fps',
+    target: 'mp4',
+    history: []
+  };
+
+  // Timeline state
+  timeline: Timeline = {
+    id: 'timeline-main',
+    name: 'Main Timeline',
+    fps: 30.0,
+    width: 1920,
+    height: 1080,
+    sample_rate: 44100,
+    channels: 2,
+    channel_layout: 3,
+    duration: 300.0, // 5 minutes default
+    scale: 15.0, // pixels per second
+    tick_pixels: 100,
+    playhead_position: 0.0,
+    layers: []
+  };
 
   // UI State
   sidebarCollapsed: boolean = false;
   inspectorCollapsed: boolean = false;
-  activeTab: string = 'media';
+  activeTab: string = 'files';
   isLoading: boolean = false;
   loadingMessage: string = '';
-  selectedTool: string = 'select';
   
-  // Navigation
-  navTabs: NavTab[] = [
+  // Tools (OpenShot style)
+  tools: Tool[] = [
+    { name: 'pointer', icon: 'cursor-arrow', cursor: 'default', tooltip: 'Selection Tool (V)', shortcut: 'V' },
+    { name: 'razor', icon: 'scissors', cursor: 'crosshair', tooltip: 'Razor Tool (C)', shortcut: 'C' },
+    { name: 'snap', icon: 'magnet', cursor: 'default', tooltip: 'Snapping (S)', shortcut: 'S' },
+    { name: 'ripple', icon: 'ripple', cursor: 'ew-resize', tooltip: 'Ripple Edit', shortcut: 'R' }
+  ];
+  
+  selectedTool: string = 'pointer';
+  snapToGrid: boolean = true;
+  
+  // Navigation tabs (OpenShot style)
+  navTabs = [
     { 
-      id: 'media', 
-      label: 'Media', 
-      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8,5.14V19.14L19,12.14L8,5.14Z"/></svg>' 
+      id: 'files', 
+      label: 'Project Files', 
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/></svg>' 
+    },
+    { 
+      id: 'transitions', 
+      label: 'Transitions', 
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18,6V4H6V6H18M6,10V8H18V10H6M6,14V12H18V14H6M6,18V16H18V18H6Z"/></svg>' 
     },
     { 
       id: 'effects', 
@@ -148,19 +301,14 @@ export class StudioComponent implements OnInit, OnDestroy {
       icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2Z"/></svg>' 
     },
     { 
-      id: 'text', 
-      label: 'Text', 
+      id: 'titles', 
+      label: 'Titles', 
       icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.5,4L19.66,8.35L18.7,8.61C18.25,7.74 17.79,6.87 17.26,6.43C16.73,6 16.11,6 15.5,6H13V16.5C13,17 13,17.5 13.5,17.5H14V19H10V17.5H10.5C11,17.5 11,17 11,16.5V6H8.5C7.89,6 7.27,6 6.74,6.43C6.21,6.87 5.75,7.74 5.3,8.61L4.34,8.35L5.5,4H18.5Z"/></svg>' 
     },
     { 
-      id: 'audio', 
-      label: 'Audio', 
-      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/></svg>' 
-    },
-    { 
-      id: 'captions', 
-      label: 'Captions', 
-      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18,11H16.5V10.5C16.5,9.95 16.05,9.5 15.5,9.5C14.95,9.5 14.5,9.95 14.5,10.5V13.5C14.5,14.05 14.95,14.5 15.5,14.5C16.05,14.5 16.5,14.05 16.5,13.5V13H18V13.5A2.5,2.5 0 0,1 15.5,16A2.5,2.5 0 0,1 13,13.5V10.5A2.5,2.5 0 0,1 15.5,8A2.5,2.5 0 0,1 18,10.5V11Z"/></svg>' 
+      id: 'emojis', 
+      label: 'Emojis', 
+      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M7,9.5C7,8.7 7.7,8 8.5,8C9.3,8 10,8.7 10,9.5C10,10.3 9.3,11 8.5,11C7.7,11 7,10.3 7,9.5M14,9.5C14,8.7 14.7,8 15.5,8C16.3,8 17,8.7 17,9.5C17,10.3 16.3,11 15.5,11C14.7,11 14,10.3 14,9.5M12,17.23C10.25,17.23 8.71,16.5 7.81,15.42L9.23,14C9.68,14.72 10.75,15.23 12,15.23C13.25,15.23 14.32,14.72 14.77,14L16.19,15.42C15.29,16.5 13.75,17.23 12,17.23Z"/></svg>' 
     }
   ];
 
@@ -177,42 +325,50 @@ export class StudioComponent implements OnInit, OnDestroy {
   selectedMedia: MediaDto | null = null;
   selectedVideoForPreview: string = '';
 
-  // Playback state
+  // Playback state (OpenShot style)
   isPlaying: boolean = false;
-  currentTime: number = 0;
-  totalDuration: number = 240;
+  currentFrame: number = 0;
+  totalFrames: number = 9000; // 5 minutes at 30fps
   volume: number = 100;
   isMuted: boolean = false;
   playbackSpeed: number = 1;
+  previewSettings: PreviewSettings = {
+    quality: 2, // 0=Low, 1=Med, 2=High
+    fps: 30,
+    width: 1920,
+    height: 1080,
+    aspect_ratio: '16:9'
+  };
 
-  // Timeline state
-  zoomLevel: number = 100;
-  timelineZoom: number = 100;
-  clips: Clip[] = [];
+  // Timeline state (OpenShot inspired)
+  timelineScale: number = 15.0; // pixels per second
+  timelinePosition: number = 0;
+  selectedClips: Clip[] = [];
   selectedClip: Clip | null = null;
-  videoTracks: number[] = [0, 1, 2];
-  audioTracks: number[] = [0, 1, 2, 3];
-  timeMarkers: TimeMarker[] = [];
+  
+  // Layers (OpenShot style - unlimited layers)
+  videoLayers: Layer[] = [];
+  audioLayers: Layer[] = [];
   
   // Track states
-  mutedTracks: { [key: string]: boolean } = {};
-  soloTracks: { [key: string]: boolean } = {};
-  trackVolumes: { [key: string]: number } = {};
+  mutedLayers: { [key: string]: boolean } = {};
+  soloLayers: { [key: string]: boolean } = {};
+  layerVolumes: { [key: string]: number } = {};
+  lockedLayers: { [key: string]: boolean } = {};
 
   // Context menu
-  contextMenu: ContextMenu = { visible: false, x: 0, y: 0 };
+  contextMenu = { visible: false, x: 0, y: 0, clip: null as Clip | null };
 
-  // Undo/Redo system
-  undoStack: UndoRedoState[] = [];
-  redoStack: UndoRedoState[] = [];
-  maxUndoStates: number = 50;
+  // History system (OpenShot style)
+  historyIndex: number = -1;
+  maxHistoryStates: number = 100;
 
   // Trimming state
   isTrimming: boolean = false;
   trimClip: Clip | null = null;
   trimSide: 'left' | 'right' = 'left';
   trimStartX: number = 0;
-  trimStartTime: number = 0;
+  trimStartPosition: number = 0;
 
   // Playhead dragging
   isDraggingPlayhead: boolean = false;
@@ -222,103 +378,115 @@ export class StudioComponent implements OnInit, OnDestroy {
   showExportModal: boolean = false;
   isExporting: boolean = false;
   exportProgress: number = 0;
-  exportSettings: ExportSettings = {
-    resolution: '1080p',
+  exportSettings = {
+    profile: 'HD 1080p 30 fps',
+    target: 'mp4',
+    video_codec: 'libx264',
+    audio_codec: 'aac',
     quality: 'high',
-    format: 'mp4'
+    video_bitrate: 8000000,
+    audio_bitrate: 192000
   };
 
-  // Effects and templates
+  // Effects library (OpenShot style)
   videoEffects: Effect[] = [
-    { 
-      id: '1', 
-      name: 'Blur', 
-      type: 'blur', 
-      thumbnail: 'https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=1', 
-      category: 'blur' 
+    {
+      id: 'blur',
+      type: 'Blur',
+      class_name: 'Blur',
+      short_name: 'blur',
+      description: 'Blur the image',
+      has_audio: false,
+      has_video: true,
+      order: 0,
+      params: { sigma_x: 3.0, sigma_y: 3.0, iterations: 1 }
     },
-    { 
-      id: '2', 
-      name: 'Sharpen', 
-      type: 'sharpen', 
-      thumbnail: 'https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=1', 
-      category: 'color' 
+    {
+      id: 'brightness',
+      type: 'Brightness & Contrast',
+      class_name: 'Brightness',
+      short_name: 'brightness',
+      description: 'Adjust brightness and contrast',
+      has_audio: false,
+      has_video: true,
+      order: 0,
+      params: { brightness: 0.0, contrast: 1.0 }
     },
-    { 
-      id: '3', 
-      name: 'Vintage', 
-      type: 'vintage', 
-      thumbnail: 'https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=1', 
-      category: 'artistic' 
+    {
+      id: 'colorshift',
+      type: 'Color Shift',
+      class_name: 'ColorShift',
+      short_name: 'colorshift',
+      description: 'Shift RGB colors',
+      has_audio: false,
+      has_video: true,
+      order: 0,
+      params: { red_x: 0.0, red_y: 0.0, green_x: 0.0, green_y: 0.0, blue_x: 0.0, blue_y: 0.0 }
     },
-    { 
-      id: '4', 
-      name: 'Glow', 
-      type: 'glow', 
-      thumbnail: 'https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=1', 
-      category: 'artistic' 
-    },
-    { 
-      id: '5', 
-      name: 'Zoom', 
-      type: 'zoom', 
-      thumbnail: 'https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=1', 
-      category: 'distortion' 
-    },
-    { 
-      id: '6', 
-      name: 'Shake', 
-      type: 'shake', 
-      thumbnail: 'https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=80&h=80&dpr=1', 
-      category: 'distortion' 
+    {
+      id: 'saturation',
+      type: 'Saturation',
+      class_name: 'Saturation',
+      short_name: 'saturation',
+      description: 'Adjust color saturation',
+      has_audio: false,
+      has_video: true,
+      order: 0,
+      params: { saturation: 1.0, saturation_R: 1.0, saturation_G: 1.0, saturation_B: 1.0 }
     }
   ];
 
-  titleTemplates: TitleTemplate[] = [
-    { id: '1', name: 'Simple Title', preview: 'Title', style: { fontSize: '24px', color: '#fff' } },
-    { id: '2', name: 'Subtitle', preview: 'Subtitle', style: { fontSize: '18px', color: '#ccc' } },
-    { id: '3', name: 'Lower Third', preview: 'Name', style: { fontSize: '20px', color: '#fff', background: '#333' } }
+  // Transitions library
+  transitions: Effect[] = [
+    {
+      id: 'fade',
+      type: 'Fade',
+      class_name: 'Fade',
+      short_name: 'fade',
+      description: 'Fade in/out transition',
+      has_audio: true,
+      has_video: true,
+      order: 0,
+      params: { brightness: 1.0 }
+    },
+    {
+      id: 'slide',
+      type: 'Slide',
+      class_name: 'Slide',
+      short_name: 'slide',
+      description: 'Slide transition',
+      has_audio: false,
+      has_video: true,
+      order: 0,
+      params: { direction: 'left' }
+    }
   ];
 
-  audioTools: AudioTool[] = [
-    { 
-      type: 'extract-voice', 
-      name: 'Extract Voice', 
-      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z"/></svg>' 
-    },
-    { 
-      type: 'remove-background', 
-      name: 'Remove BG Audio', 
-      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z"/></svg>' 
-    },
-    { 
-      type: 'noise-reduction', 
-      name: 'Noise Reduction', 
-      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/></svg>' 
-    },
-    { 
-      type: 'audio-mixer', 
-      name: 'Audio Mixer', 
-      icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H7A2,2 0 0,0 9,19V5A2,2 0 0,0 7,3M7,19H5V5H7V19M12,3H10A2,2 0 0,0 8,5V19A2,2 0 0,0 10,21H12A2,2 0 0,0 14,19V5A2,2 0 0,0 12,3M12,19H10V5H12V19M19,3H17A2,2 0 0,0 15,5V19A2,2 0 0,0 17,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H17V5H19V19Z"/></svg>' 
-    }
+  // Title templates
+  titleTemplates = [
+    { id: '1', name: 'Simple Title', preview: 'Title', style: { fontSize: '48px', color: '#ffffff', fontFamily: 'Arial' } },
+    { id: '2', name: 'Subtitle', preview: 'Subtitle', style: { fontSize: '32px', color: '#cccccc', fontFamily: 'Arial' } },
+    { id: '3', name: 'Lower Third', preview: 'Name', style: { fontSize: '24px', color: '#ffffff', background: 'rgba(0,0,0,0.7)' } },
+    { id: '4', name: 'End Credits', preview: 'Credits', style: { fontSize: '20px', color: '#ffffff', textAlign: 'center' } }
   ];
 
   // Toast notifications
-  toasts: Toast[] = [];
+  toasts: any[] = [];
   private toastIdCounter = 0;
 
   constructor(
     private mediaService: MediaService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {
-    this.generateTimeMarkers();
-    this.initializeTrackStates();
+    this.initializeProject();
   }
 
   ngOnInit(): void {
     this.loadMedia();
     this.setupKeyboardShortcuts();
-    this.saveState(); // Initial state
+    this.saveHistoryState('Project Initialized', 'project_init');
+    this.generateTimelineMarkers();
   }
 
   ngOnDestroy(): void {
@@ -327,12 +495,49 @@ export class StudioComponent implements OnInit, OnDestroy {
     document.removeEventListener('mouseup', this.onMouseUp);
   }
 
-  // Keyboard shortcuts
+  // OpenShot-inspired project initialization
+  private initializeProject(): void {
+    // Create default layers (OpenShot style)
+    for (let i = 0; i < 5; i++) {
+      const videoLayer: Layer = {
+        id: `video-layer-${i}`,
+        number: i,
+        y: i * 60,
+        lock: false,
+        label: `Video ${i + 1}`,
+        clips: []
+      };
+      this.videoLayers.push(videoLayer);
+      this.timeline.layers.push(videoLayer);
+    }
+
+    for (let i = 0; i < 3; i++) {
+      const audioLayer: Layer = {
+        id: `audio-layer-${i}`,
+        number: i + 5,
+        y: (i + 5) * 60,
+        lock: false,
+        label: `Audio ${i + 1}`,
+        clips: []
+      };
+      this.audioLayers.push(audioLayer);
+      this.timeline.layers.push(audioLayer);
+    }
+
+    // Initialize layer states
+    this.timeline.layers.forEach(layer => {
+      this.mutedLayers[layer.id] = false;
+      this.soloLayers[layer.id] = false;
+      this.layerVolumes[layer.id] = 100;
+      this.lockedLayers[layer.id] = false;
+    });
+  }
+
+  // Keyboard shortcuts (OpenShot style)
   @HostListener('document:keydown', ['$event'])
   handleKeyboardShortcuts(event: KeyboardEvent): void {
-    // Prevent default for our shortcuts
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-      return; // Don't interfere with input fields
+      return;
     }
 
     switch (event.code) {
@@ -340,16 +545,10 @@ export class StudioComponent implements OnInit, OnDestroy {
         event.preventDefault();
         this.togglePlayPause();
         break;
-      case 'KeyS':
-        if (!event.ctrlKey && !event.metaKey) {
-          event.preventDefault();
-          this.setTool('razor');
-        }
-        break;
       case 'KeyV':
         if (!event.ctrlKey && !event.metaKey) {
           event.preventDefault();
-          this.setTool('select');
+          this.setTool('pointer');
         }
         break;
       case 'KeyC':
@@ -358,11 +557,20 @@ export class StudioComponent implements OnInit, OnDestroy {
           this.setTool('razor');
         }
         break;
+      case 'KeyS':
+        if (!event.ctrlKey && !event.metaKey) {
+          event.preventDefault();
+          this.toggleSnapping();
+        } else if (event.ctrlKey || event.metaKey) {
+          event.preventDefault();
+          this.saveProject();
+        }
+        break;
       case 'Delete':
       case 'Backspace':
-        if (this.selectedClip) {
+        if (this.selectedClips.length > 0) {
           event.preventDefault();
-          this.deleteClip();
+          this.deleteSelectedClips();
         }
         break;
       case 'KeyZ':
@@ -382,16 +590,28 @@ export class StudioComponent implements OnInit, OnDestroy {
         }
         break;
       case 'ArrowLeft':
-        if (this.selectedClip && !event.shiftKey) {
-          event.preventDefault();
-          this.nudgeClip(-0.1);
+        event.preventDefault();
+        if (event.shiftKey) {
+          this.seekToFrame(this.currentFrame - 10);
+        } else {
+          this.seekToFrame(this.currentFrame - 1);
         }
         break;
       case 'ArrowRight':
-        if (this.selectedClip && !event.shiftKey) {
-          event.preventDefault();
-          this.nudgeClip(0.1);
+        event.preventDefault();
+        if (event.shiftKey) {
+          this.seekToFrame(this.currentFrame + 10);
+        } else {
+          this.seekToFrame(this.currentFrame + 1);
         }
+        break;
+      case 'Home':
+        event.preventDefault();
+        this.seekToFrame(0);
+        break;
+      case 'End':
+        event.preventDefault();
+        this.seekToFrame(this.totalFrames - 1);
         break;
     }
   }
@@ -404,44 +624,59 @@ export class StudioComponent implements OnInit, OnDestroy {
     // Cleanup handled by @HostListener
   }
 
-  // Undo/Redo System
-  private saveState(): void {
-    const state: UndoRedoState = {
-      clips: JSON.parse(JSON.stringify(this.clips)),
-      selectedClip: this.selectedClip ? JSON.parse(JSON.stringify(this.selectedClip)) : null,
+  // History system (OpenShot style)
+  private saveHistoryState(description: string, type: string, data?: any): void {
+    const state: HistoryState = {
+      id: `history-${Date.now()}`,
+      type: type,
+      description: description,
+      data: data || {
+        clips: JSON.parse(JSON.stringify(this.project.clips)),
+        layers: JSON.parse(JSON.stringify(this.timeline.layers)),
+        playhead_position: this.timeline.playhead_position
+      },
       timestamp: Date.now()
     };
 
-    this.undoStack.push(state);
-    if (this.undoStack.length > this.maxUndoStates) {
-      this.undoStack.shift();
+    // Remove any states after current index
+    this.project.history = this.project.history.slice(0, this.historyIndex + 1);
+    
+    this.project.history.push(state);
+    this.historyIndex = this.project.history.length - 1;
+
+    // Limit history size
+    if (this.project.history.length > this.maxHistoryStates) {
+      this.project.history.shift();
+      this.historyIndex--;
     }
-    this.redoStack = []; // Clear redo stack when new action is performed
   }
 
   undo(): void {
-    if (this.undoStack.length > 1) {
-      const currentState = this.undoStack.pop()!;
-      this.redoStack.push(currentState);
-      
-      const previousState = this.undoStack[this.undoStack.length - 1];
-      this.restoreState(previousState);
-      this.showToast('Undone', 'info');
+    if (this.historyIndex > 0) {
+      this.historyIndex--;
+      const state = this.project.history[this.historyIndex];
+      this.restoreHistoryState(state);
+      this.showToast(`Undone: ${state.description}`, 'info');
     }
   }
 
   redo(): void {
-    if (this.redoStack.length > 0) {
-      const state = this.redoStack.pop()!;
-      this.undoStack.push(state);
-      this.restoreState(state);
-      this.showToast('Redone', 'info');
+    if (this.historyIndex < this.project.history.length - 1) {
+      this.historyIndex++;
+      const state = this.project.history[this.historyIndex];
+      this.restoreHistoryState(state);
+      this.showToast(`Redone: ${state.description}`, 'info');
     }
   }
 
-  private restoreState(state: UndoRedoState): void {
-    this.clips = JSON.parse(JSON.stringify(state.clips));
-    this.selectedClip = state.selectedClip ? JSON.parse(JSON.stringify(state.selectedClip)) : null;
+  private restoreHistoryState(state: HistoryState): void {
+    if (state.data) {
+      this.project.clips = JSON.parse(JSON.stringify(state.data.clips || []));
+      this.timeline.layers = JSON.parse(JSON.stringify(state.data.layers || []));
+      this.timeline.playhead_position = state.data.playhead_position || 0;
+      this.currentFrame = this.timeToFrame(this.timeline.playhead_position);
+      this.cdr.detectChanges();
+    }
   }
 
   // UI Methods
@@ -453,18 +688,9 @@ export class StudioComponent implements OnInit, OnDestroy {
     this.inspectorCollapsed = !this.inspectorCollapsed;
   }
 
-  toggleProjectDropdown(): void {
-    this.showToast('Project dropdown opened', 'info');
-  }
-
-  toggleLanguage(): void {
-    this.currentLanguage = this.currentLanguage === 'EN' ? 'AR' : 'EN';
-    this.showToast(`Language switched to ${this.currentLanguage}`, 'info');
-  }
-
   setActiveTab(tabId: string): void {
     this.activeTab = tabId;
-    if (tabId === 'media') {
+    if (tabId === 'files') {
       this.loadMedia();
     }
   }
@@ -472,6 +698,11 @@ export class StudioComponent implements OnInit, OnDestroy {
   setTool(tool: string): void {
     this.selectedTool = tool;
     this.showToast(`Selected ${tool} tool`, 'info');
+  }
+
+  toggleSnapping(): void {
+    this.snapToGrid = !this.snapToGrid;
+    this.showToast(`Snapping ${this.snapToGrid ? 'enabled' : 'disabled'}`, 'info');
   }
 
   // Search and filtering
@@ -486,17 +717,15 @@ export class StudioComponent implements OnInit, OnDestroy {
       const query = this.searchQuery.toLowerCase();
       this.filteredMedia = this.allMedia.filter(media =>
         media.title?.toLowerCase().includes(query) ||
-        media.description?.toLowerCase().includes(query) ||
-        media.sourceLanguage?.toLowerCase().includes(query) ||
-        media.destinationLanguage?.toLowerCase().includes(query)
+        media.description?.toLowerCase().includes(query)
       );
     }
   }
 
-  // Media management - FIXED VIDEO LOADING
+  // Media management (OpenShot style)
   loadMedia(): void {
     this.isLoading = true;
-    this.loadingMessage = 'Loading media library...';
+    this.loadingMessage = 'Loading project files...';
     
     this.mediaService.getList({
       maxResultCount: 100,
@@ -506,45 +735,64 @@ export class StudioComponent implements OnInit, OnDestroy {
       next: (response) => {
         console.log('Raw media response:', response);
         
-        // Process media items and create proper video URLs
         this.allMedia = (response.items || []).map(media => {
           let processedMedia = { ...media };
           
-          // Fix video URL if it exists
           if (media.video && media.video.trim() !== '') {
-            // If it's already a blob URL, keep it
             if (media.video.startsWith('blob:')) {
               processedMedia.video = media.video;
-            }
-            // If it's a relative URL, make it absolute
-            else if (media.video.startsWith('/')) {
+            } else if (media.video.startsWith('/')) {
               processedMedia.video = `${window.location.origin}${media.video}`;
-            }
-            // If it's already absolute, keep it
-            else if (media.video.startsWith('http')) {
+            } else if (media.video.startsWith('http')) {
               processedMedia.video = media.video;
-            }
-            // Otherwise, try to construct a proper URL
-            else {
+            } else {
               processedMedia.video = `${window.location.origin}/api/app/media/download-video/${media.id}`;
             }
           } else {
-            // If no video URL, try to get it from the download endpoint
             processedMedia.video = `${window.location.origin}/api/app/media/download-video/${media.id}`;
           }
           
-          console.log('Processed media:', processedMedia.title, processedMedia.video);
+          // Create FileReader object (OpenShot style)
+          const fileReader: FileReader = {
+            id: media.id,
+            path: processedMedia.video,
+            media_type: 'video',
+            has_video: true,
+            has_audio: true,
+            duration: 30.0, // Default duration
+            fps: 30.0,
+            width: 1920,
+            height: 1080,
+            pixel_ratio: 1.0,
+            display_ratio: 1.777778,
+            sample_rate: 44100,
+            channels: 2,
+            channel_layout: 3,
+            acodec: 'aac',
+            vcodec: 'h264',
+            video_bit_rate: 8000000,
+            audio_bit_rate: 192000,
+            video_stream_index: 0,
+            audio_stream_index: 1,
+            video_timebase: 0.033333,
+            audio_timebase: 0.000023,
+            interlaced_frame: false,
+            top_field_first: true
+          };
+          
+          this.project.files.push(fileReader);
+          
           return processedMedia;
         });
         
         this.filterMedia();
         this.isLoading = false;
-        this.showToast(`Loaded ${this.allMedia.length} media items`, 'success');
+        this.showToast(`Loaded ${this.allMedia.length} project files`, 'success');
       },
       error: (error) => {
         console.error('Failed to load media:', error);
         this.isLoading = false;
-        this.showToast('Failed to load media', 'error');
+        this.showToast('Failed to load project files', 'error');
       }
     });
   }
@@ -555,7 +803,6 @@ export class StudioComponent implements OnInit, OnDestroy {
     this.showToast(`Selected: ${media.title}`, 'info');
   }
 
-  // FIXED VIDEO PREVIEW
   addMediaToPreview(media: MediaDto): void {
     console.log('Adding media to preview:', media);
     this.selectedMedia = media;
@@ -564,82 +811,62 @@ export class StudioComponent implements OnInit, OnDestroy {
       this.selectedVideoForPreview = media.video;
       console.log('Setting video URL:', this.selectedVideoForPreview);
       
-      // Wait for video element to be available and force reload
       setTimeout(() => {
         if (this.videoPlayer?.nativeElement) {
           const video = this.videoPlayer.nativeElement;
           console.log('Video element found, loading:', this.selectedVideoForPreview);
           
-          // Set up event listeners for debugging
           video.addEventListener('loadstart', () => console.log('Video load started'));
-          video.addEventListener('loadedmetadata', () => console.log('Video metadata loaded'));
+          video.addEventListener('loadedmetadata', () => {
+            console.log('Video metadata loaded');
+            this.updatePreviewSettings(video);
+          });
           video.addEventListener('canplay', () => console.log('Video can play'));
           video.addEventListener('error', (e) => console.error('Video error:', e));
           
           video.src = this.selectedVideoForPreview;
           video.load();
-          video.currentTime = 0;
-          this.currentTime = 0;
+          video.currentTime = this.frameToTime(this.currentFrame);
           this.showToast(`Now previewing: ${media.title}`, 'success');
-        } else {
-          console.error('Video player element not found');
         }
       }, 100);
     } else {
-      console.warn('No video URL available for media:', media);
       this.showToast('No video available for this media', 'warning');
     }
   }
 
-  onMediaThumbnailError(event: Event, media: MediaDto): void {
-    console.error('Media thumbnail failed to load:', media.title, media.video);
-    const videoElement = event.target as HTMLVideoElement;
-    videoElement.style.opacity = '0.3';
-    
-    // Try alternative URL
-    if (media.video && !media.video.includes('download-video')) {
-      const altUrl = `${window.location.origin}/api/app/media/download-video/${media.id}`;
-      console.log('Trying alternative URL:', altUrl);
-      videoElement.src = altUrl;
-    }
+  private updatePreviewSettings(video: HTMLVideoElement): void {
+    this.previewSettings.width = video.videoWidth || 1920;
+    this.previewSettings.height = video.videoHeight || 1080;
+    this.previewSettings.fps = 30; // Default, would need to detect actual fps
+    this.previewSettings.aspect_ratio = `${this.previewSettings.width}:${this.previewSettings.height}`;
   }
 
-  onThumbnailLoaded(event: Event): void {
-    const video = event.target as HTMLVideoElement;
-    video.currentTime = 1;
-    video.style.opacity = '1';
-  }
-
+  // File import (OpenShot style)
   openImportDialog(): void {
     this.fileInput.nativeElement.click();
   }
 
-  // IMPROVED FILE IMPORT
   handleFileImport(event: Event): void {
     const input = event.target as HTMLInputElement;
     const files = input.files;
     
     if (files && files.length > 0) {
       this.isLoading = true;
-      this.loadingMessage = 'Importing media files...';
-      
-      const importPromises: Promise<any>[] = [];
+      this.loadingMessage = 'Importing project files...';
       
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         console.log('Processing file:', file.name, file.type, file.size);
         
-        // Validate file type
         if (!file.type.startsWith('video/') && !file.type.startsWith('audio/') && !file.type.startsWith('image/')) {
           console.warn('Skipping unsupported file type:', file.type);
           continue;
         }
         
-        // Create blob URL for immediate use
         const blobUrl = URL.createObjectURL(file);
         console.log('Created blob URL:', blobUrl);
         
-        // Create media DTO
         const mediaDto = {
           title: file.name.replace(/\.[^/.]+$/, ''),
           description: `Imported ${file.type} file`,
@@ -656,7 +883,6 @@ export class StudioComponent implements OnInit, OnDestroy {
           countryDialect: ''
         };
         
-        // Add to local media list immediately
         const localMedia: MediaDto = {
           id: `local-${Date.now()}-${i}`,
           title: mediaDto.title,
@@ -668,70 +894,63 @@ export class StudioComponent implements OnInit, OnDestroy {
           countryDialect: mediaDto.countryDialect
         };
         
-        this.allMedia.unshift(localMedia); // Add to beginning of array
+        this.allMedia.unshift(localMedia);
         
-        // Try to save to backend
-        const promise = this.mediaService.create(mediaDto).toPromise()
-          .then((createdMedia) => {
-            console.log('Media created on server:', createdMedia);
-            // Update the local media with the server ID
-            const index = this.allMedia.findIndex(m => m.id === localMedia.id);
-            if (index !== -1) {
-              this.allMedia[index] = { ...createdMedia, video: blobUrl };
-            }
-            
-            // Try to upload the actual file
-            const formData = new FormData();
-            formData.append('video', file, file.name);
-            
-            return this.mediaService.uploadVideo(createdMedia.id, formData).toPromise()
-              .then((uploadResponse) => {
-                console.log('File uploaded successfully:', uploadResponse);
-                return uploadResponse;
-              })
-              .catch((uploadError) => {
-                console.warn('File upload failed, but media record created:', uploadError);
-                return createdMedia;
-              });
-          })
-          .catch((error) => {
-            console.error('Failed to create media record:', error);
-            return localMedia; // Keep the local version
-          });
+        // Create FileReader object
+        const fileReader: FileReader = {
+          id: localMedia.id,
+          path: blobUrl,
+          media_type: file.type.startsWith('video/') ? 'video' : file.type.startsWith('audio/') ? 'audio' : 'image',
+          has_video: file.type.startsWith('video/') || file.type.startsWith('image/'),
+          has_audio: file.type.startsWith('video/') || file.type.startsWith('audio/'),
+          duration: 30.0,
+          fps: 30.0,
+          width: 1920,
+          height: 1080,
+          pixel_ratio: 1.0,
+          display_ratio: 1.777778,
+          sample_rate: 44100,
+          channels: 2,
+          channel_layout: 3,
+          acodec: 'aac',
+          vcodec: 'h264',
+          video_bit_rate: 8000000,
+          audio_bit_rate: 192000,
+          video_stream_index: 0,
+          audio_stream_index: 1,
+          video_timebase: 0.033333,
+          audio_timebase: 0.000023,
+          interlaced_frame: false,
+          top_field_first: true
+        };
         
-        importPromises.push(promise);
+        this.project.files.push(fileReader);
       }
       
-      // Update UI immediately
       this.filterMedia();
       this.isLoading = false;
       this.showToast(`Imported ${files.length} file(s) successfully!`, 'success');
-      
-      // Handle backend operations in background
-      Promise.allSettled(importPromises).then((results) => {
-        const successfulUploads = results.filter(r => r.status === 'fulfilled').length;
-        if (successfulUploads > 0) {
-          this.showToast(`${successfulUploads} file(s) uploaded to server`, 'info');
-        }
-      });
+      this.saveHistoryState('Files Imported', 'import_files');
     }
     
-    // Reset input
     input.value = '';
   }
 
-  // Playback controls
+  // Playback controls (OpenShot style with frame-based precision)
   togglePlayPause(): void {
     if (this.videoPlayer?.nativeElement) {
       const video = this.videoPlayer.nativeElement;
       if (this.isPlaying) {
         video.pause();
+        this.isPlaying = false;
       } else {
         const playPromise = video.play();
         if (playPromise !== undefined) {
-          playPromise.catch(error => {
+          playPromise.then(() => {
+            this.isPlaying = true;
+          }).catch(error => {
             console.error('Video play failed:', error);
-            this.showToast('Video playback failed. Please try a different file.', 'error');
+            this.showToast('Video playback failed', 'error');
           });
         }
       }
@@ -740,177 +959,174 @@ export class StudioComponent implements OnInit, OnDestroy {
     }
   }
 
-  skipBackward(): void {
+  seekToFrame(frame: number): void {
+    this.currentFrame = Math.max(0, Math.min(frame, this.totalFrames - 1));
+    this.timeline.playhead_position = this.frameToTime(this.currentFrame);
+    
     if (this.videoPlayer?.nativeElement) {
-      this.videoPlayer.nativeElement.currentTime = Math.max(0, this.videoPlayer.nativeElement.currentTime - 10);
+      this.videoPlayer.nativeElement.currentTime = this.timeline.playhead_position;
     }
   }
 
-  skipForward(): void {
-    if (this.videoPlayer?.nativeElement) {
-      this.videoPlayer.nativeElement.currentTime = Math.min(
-        this.videoPlayer.nativeElement.duration || 0, 
-        this.videoPlayer.nativeElement.currentTime + 10
-      );
-    }
+  private frameToTime(frame: number): number {
+    return frame / this.timeline.fps;
+  }
+
+  private timeToFrame(time: number): number {
+    return Math.round(time * this.timeline.fps);
   }
 
   onVideoLoaded(event: Event): void {
     const video = event.target as HTMLVideoElement;
-    this.totalDuration = video.duration || 240;
-    this.generateTimeMarkers();
-    console.log('Video loaded successfully, duration:', this.totalDuration);
+    const duration = video.duration || 300;
+    this.totalFrames = Math.round(duration * this.timeline.fps);
+    this.timeline.duration = duration;
+    this.generateTimelineMarkers();
+    this.updatePreviewSettings(video);
     this.showToast('Video loaded successfully', 'success');
   }
 
   onTimeUpdate(event: Event): void {
     const video = event.target as HTMLVideoElement;
-    this.currentTime = video.currentTime;
+    this.timeline.playhead_position = video.currentTime;
+    this.currentFrame = this.timeToFrame(video.currentTime);
   }
 
   onVideoError(event: Event): void {
     const video = event.target as HTMLVideoElement;
     console.error('Video playback error:', video.error);
-    this.showToast('Video playback error. Please try a different file.', 'error');
+    this.showToast('Video playback error', 'error');
   }
 
-  // Timeline controls
-  zoomIn(): void {
-    if (this.zoomLevel < 400) {
-      this.zoomLevel += 25;
-      this.showToast(`Zoomed in to ${this.zoomLevel}%`, 'info');
+  // Timeline controls (OpenShot style)
+  zoomTimelineIn(): void {
+    if (this.timelineScale < 100) {
+      this.timelineScale *= 1.5;
+      this.generateTimelineMarkers();
+      this.showToast(`Timeline zoom: ${Math.round(this.timelineScale)}px/sec`, 'info');
     }
   }
 
-  zoomOut(): void {
-    if (this.zoomLevel > 25) {
-      this.zoomLevel -= 25;
-      this.showToast(`Zoomed out to ${this.zoomLevel}%`, 'info');
+  zoomTimelineOut(): void {
+    if (this.timelineScale > 1) {
+      this.timelineScale /= 1.5;
+      this.generateTimelineMarkers();
+      this.showToast(`Timeline zoom: ${Math.round(this.timelineScale)}px/sec`, 'info');
     }
   }
 
-  onTimelineZoomChange(): void {
-    this.generateTimeMarkers();
+  fitTimelineToWindow(): void {
+    if (this.timelineContainer?.nativeElement) {
+      const containerWidth = this.timelineContainer.nativeElement.clientWidth - 200; // Account for track headers
+      this.timelineScale = containerWidth / this.timeline.duration;
+      this.generateTimelineMarkers();
+      this.showToast('Timeline fitted to window', 'info');
+    }
   }
 
-  fitToWindow(): void {
-    this.timelineZoom = 100;
-    this.generateTimeMarkers();
-    this.showToast('Timeline fitted to window', 'info');
-  }
-
-  private generateTimeMarkers(): void {
-    const markerCount = Math.max(5, Math.floor(this.totalDuration / 30));
-    const interval = this.totalDuration / (markerCount - 1);
+  private generateTimelineMarkers(): void {
+    // Generate time markers based on scale
+    const markerInterval = this.getMarkerInterval();
+    const markers = [];
     
-    this.timeMarkers = Array.from({ length: markerCount }, (_, i) => ({
-      time: this.formatTime(i * interval),
-      position: (i / (markerCount - 1)) * 100
-    }));
-  }
-
-  // Track management
-  private initializeTrackStates(): void {
-    [...this.videoTracks, ...this.audioTracks].forEach(trackIndex => {
-      const videoKey = `video-${trackIndex}`;
-      const audioKey = `audio-${trackIndex}`;
-      
-      this.mutedTracks[videoKey] = false;
-      this.mutedTracks[audioKey] = false;
-      this.soloTracks[videoKey] = false;
-      this.soloTracks[audioKey] = false;
-      this.trackVolumes[videoKey] = 100;
-      this.trackVolumes[audioKey] = 100;
-    });
-  }
-
-  isTrackMuted(type: 'video' | 'audio' | 'text', trackIndex: number): boolean {
-    return this.mutedTracks[`${type}-${trackIndex}`] || false;
-  }
-
-  isTrackSolo(type: 'video' | 'audio' | 'text', trackIndex: number): boolean {
-    return this.soloTracks[`${type}-${trackIndex}`] || false;
-  }
-
-  getTrackVolume(type: 'video' | 'audio' | 'text', trackIndex: number): number {
-    return this.trackVolumes[`${type}-${trackIndex}`] || 100;
-  }
-
-  toggleTrackMute(type: 'video' | 'audio' | 'text', trackIndex: number): void {
-    const key = `${type}-${trackIndex}`;
-    this.mutedTracks[key] = !this.mutedTracks[key];
-    this.showToast(`Track ${type} ${trackIndex + 1} ${this.mutedTracks[key] ? 'muted' : 'unmuted'}`, 'info');
-  }
-
-  toggleTrackSolo(type: 'video' | 'audio' | 'text', trackIndex: number): void {
-    const key = `${type}-${trackIndex}`;
-    this.soloTracks[key] = !this.soloTracks[key];
-    this.showToast(`Track ${type} ${trackIndex + 1} ${this.soloTracks[key] ? 'soloed' : 'unsoloed'}`, 'info');
-  }
-
-  setTrackVolume(type: 'video' | 'audio' | 'text', trackIndex: number, event: Event): void {
-    const target = event.target as HTMLInputElement;
-    const key = `${type}-${trackIndex}`;
-    this.trackVolumes[key] = parseInt(target.value);
-  }
-
-  onTrackClick(type: 'video' | 'audio' | 'text', trackIndex: number, event: MouseEvent): void {
-    if (this.selectedTool === 'razor') {
-      // Calculate time position and split clips at that position
-      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const timePosition = (x / rect.width) * this.totalDuration;
-      
-      this.splitClipsAtTime(type, trackIndex, timePosition);
+    for (let time = 0; time <= this.timeline.duration; time += markerInterval) {
+      markers.push({
+        time: this.formatTime(time),
+        position: (time / this.timeline.duration) * 100,
+        frame: this.timeToFrame(time)
+      });
     }
+    
+    this.timeline.tick_pixels = this.timelineScale * markerInterval;
   }
 
-  // Clip management
-  getClipsForTrack(type: 'video' | 'audio' | 'text', trackIndex: number): Clip[] {
-    return this.clips
-      .filter(clip => clip.trackType === type && clip.trackIndex === trackIndex)
-      .sort((a, b) => a.startTime - b.startTime);
+  private getMarkerInterval(): number {
+    // Determine appropriate marker interval based on scale
+    if (this.timelineScale > 50) return 1; // 1 second
+    if (this.timelineScale > 20) return 5; // 5 seconds
+    if (this.timelineScale > 5) return 10; // 10 seconds
+    if (this.timelineScale > 1) return 30; // 30 seconds
+    return 60; // 1 minute
   }
 
-  selectClip(clip: Clip, event?: MouseEvent): void {
-    if (event) {
-      event.stopPropagation();
-    }
-    this.selectedClip = clip;
-    this.hideContextMenu();
-    this.showToast(`Selected: ${clip.name}`, 'info');
+  // Layer management (OpenShot style)
+  addVideoLayer(): void {
+    const layerNumber = this.videoLayers.length;
+    const newLayer: Layer = {
+      id: `video-layer-${layerNumber}`,
+      number: layerNumber,
+      y: layerNumber * 60,
+      lock: false,
+      label: `Video ${layerNumber + 1}`,
+      clips: []
+    };
+    
+    this.videoLayers.push(newLayer);
+    this.timeline.layers.push(newLayer);
+    this.initializeLayerState(newLayer);
+    this.saveHistoryState('Video Layer Added', 'add_layer');
+    this.showToast(`Added Video Layer ${layerNumber + 1}`, 'success');
   }
 
-  onClipRightClick(clip: Clip, event: MouseEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.selectedClip = clip;
-    this.showContextMenu(event.clientX, event.clientY, clip);
+  addAudioLayer(): void {
+    const layerNumber = this.audioLayers.length;
+    const newLayer: Layer = {
+      id: `audio-layer-${layerNumber}`,
+      number: this.videoLayers.length + layerNumber,
+      y: (this.videoLayers.length + layerNumber) * 60,
+      lock: false,
+      label: `Audio ${layerNumber + 1}`,
+      clips: []
+    };
+    
+    this.audioLayers.push(newLayer);
+    this.timeline.layers.push(newLayer);
+    this.initializeLayerState(newLayer);
+    this.saveHistoryState('Audio Layer Added', 'add_layer');
+    this.showToast(`Added Audio Layer ${layerNumber + 1}`, 'success');
   }
 
-  // IMPROVED DRAG AND DROP SYSTEM
+  private initializeLayerState(layer: Layer): void {
+    this.mutedLayers[layer.id] = false;
+    this.soloLayers[layer.id] = false;
+    this.layerVolumes[layer.id] = 100;
+    this.lockedLayers[layer.id] = false;
+  }
+
+  toggleLayerMute(layerId: string): void {
+    this.mutedLayers[layerId] = !this.mutedLayers[layerId];
+    const layer = this.timeline.layers.find(l => l.id === layerId);
+    this.showToast(`Layer ${layer?.label} ${this.mutedLayers[layerId] ? 'muted' : 'unmuted'}`, 'info');
+  }
+
+  toggleLayerLock(layerId: string): void {
+    this.lockedLayers[layerId] = !this.lockedLayers[layerId];
+    const layer = this.timeline.layers.find(l => l.id === layerId);
+    this.showToast(`Layer ${layer?.label} ${this.lockedLayers[layerId] ? 'locked' : 'unlocked'}`, 'info');
+  }
+
+  setLayerVolume(layerId: string, volume: number): void {
+    this.layerVolumes[layerId] = volume;
+  }
+
+  // Drag and Drop (OpenShot style)
   onClipDrop(event: CdkDragDrop<any>): void {
     console.log('Clip drop event:', event);
     const dragData = event.item.data;
     const dropData = event.container.data;
     
-    console.log('Drag data:', dragData);
-    console.log('Drop data:', dropData);
-    
     if (dragData?.type === 'media' && dragData.media) {
-      this.addMediaToTimeline(dragData.media, dropData.type, dropData.index, event);
+      this.addMediaToTimeline(dragData.media, dropData.layerId, event);
     } else if (dragData?.type === 'effect' && dragData.effect) {
-      this.applyEffect(dragData.effect);
-    } else if (dragData?.type === 'text' && dragData.template) {
-      this.addTextToTimeline(dragData.template, dropData.index);
+      this.applyEffectToSelectedClips(dragData.effect);
+    } else if (dragData?.type === 'transition' && dragData.transition) {
+      this.addTransition(dragData.transition, dropData.layerId, event);
     } else if (dragData?.id) {
-      // Moving existing clip
       this.moveClip(dragData, dropData, event);
     }
   }
 
   onPreviewDrop(event: CdkDragDrop<any>): void {
-    console.log('Preview drop event:', event);
     const dragData = event.item.data;
     
     if (dragData?.type === 'media' && dragData.media) {
@@ -918,443 +1134,153 @@ export class StudioComponent implements OnInit, OnDestroy {
     }
   }
 
-  onMediaLibraryDrop(event: CdkDragDrop<any>): void {
-    console.log('Media library drop event:', event);
-    // Handle files dropped into media library
-    if (event.item.data?.files) {
-      this.handleFileImport(event.item.data.files);
-    }
-  }
-
-  onClipDragStart(clip: Clip): void {
-    console.log('Clip drag started:', clip);
-    this.selectedClip = clip;
-  }
-
-  onClipDragEnd(clip: Clip, event: any): void {
-    console.log('Clip drag ended:', clip, event);
-    // Update clip position based on drop location
-    const dropPoint = event.dropPoint;
-    if (dropPoint) {
-      const rect = event.source.element.nativeElement.parentElement.getBoundingClientRect();
-      const newTime = ((dropPoint.x - rect.left) / rect.width) * this.totalDuration;
-      
-      if (newTime >= 0 && newTime <= this.totalDuration - clip.duration) {
-        clip.startTime = newTime;
-        clip.endTime = newTime + clip.duration;
-        this.saveState();
-        this.showToast(`Moved ${clip.name}`, 'info');
-      }
-    }
-  }
-
-  // IMPROVED TIMELINE ADDITION
-  private addMediaToTimeline(media: MediaDto, trackType: 'video' | 'audio', trackIndex: number, event?: any): void {
-    console.log('Adding media to timeline:', media, trackType, trackIndex);
+  // Clip operations (OpenShot style)
+  private addMediaToTimeline(media: MediaDto, layerId: string, event?: any): void {
+    console.log('Adding media to timeline:', media, layerId);
     
-    // Calculate drop position if available
-    let startTime = 0;
+    const layer = this.timeline.layers.find(l => l.id === layerId);
+    if (!layer) return;
+    
+    // Calculate drop position
+    let position = 0;
     if (event && event.container && event.container.element) {
       const rect = event.container.element.nativeElement.getBoundingClientRect();
-      const dropX = event.dropPoint?.x || event.currentIndex * 100; // Fallback calculation
-      startTime = Math.max(0, ((dropX - rect.left) / rect.width) * this.totalDuration);
-    } else {
-      startTime = this.findNextAvailableTime(trackType, trackIndex);
+      const dropX = event.dropPoint?.x || event.currentIndex * 100;
+      position = Math.max(0, ((dropX - rect.left) / rect.width) * this.timeline.duration);
     }
     
-    // Determine duration based on media type
-    let duration = 30; // Default duration
-    if (media.video && this.videoPlayer?.nativeElement) {
-      // Try to get actual duration from video element
-      const tempVideo = document.createElement('video');
-      tempVideo.src = media.video;
-      tempVideo.addEventListener('loadedmetadata', () => {
-        if (tempVideo.duration && !isNaN(tempVideo.duration)) {
-          duration = tempVideo.duration;
-        }
-      });
+    // Snap to grid if enabled
+    if (this.snapToGrid) {
+      position = Math.round(position * this.timeline.fps) / this.timeline.fps;
     }
+    
+    const fileReader = this.project.files.find(f => f.id === media.id);
+    const duration = fileReader?.duration || 30.0;
     
     const newClip: Clip = {
-      id: `${trackType}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: media.title || 'Untitled',
-      type: trackType,
-      trackType: trackType,
-      trackIndex: trackIndex,
-      inPoint: 0,
-      outPoint: duration,
+      id: `clip-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      layer: layer.number,
+      position: position,
+      start: 0,
+      end: duration,
       duration: duration,
-      startTime: startTime,
-      endTime: startTime + duration,
-      src: media.video || '',
-      thumbnail: media.video || '',
-      mediaId: media.id,
-      opacity: 100,
-      scale: 100,
-      rotation: 0,
-      brightness: 0,
-      contrast: 0,
-      saturation: 0,
-      volume: 100,
-      pan: 0,
-      pitch: 0,
+      file_id: media.id,
+      title: media.title || 'Untitled',
+      reader: fileReader,
+      
+      // Transform properties (OpenShot defaults)
+      gravity: 4, // Center
+      scale: 1.0,
+      scale_x: 1.0,
+      scale_y: 1.0,
+      location_x: 0.0,
+      location_y: 0.0,
+      rotation: 0.0,
+      alpha: 1.0,
+      
+      // Audio properties
+      volume: 1.0,
+      channel_filter: -1,
+      channel_mapping: -1,
+      
+      // Effects and keyframes
       effects: [],
-      keyframes: [],
-      waveform: trackType === 'audio' ? this.generateWaveform() : undefined
+      keyframes: {},
+      
+      // Type determination
+      type: fileReader?.has_video ? 'video' : fileReader?.has_audio ? 'audio' : 'image',
+      
+      // Thumbnail
+      thumbnail: media.video
     };
     
-    console.log('Created new clip:', newClip);
-    this.clips.push(newClip);
-    this.saveState();
-    this.showToast(`Added "${media.title}" to ${trackType} track ${trackIndex + 1}`, 'success');
-  }
-
-  private addTextToTimeline(template: TitleTemplate, trackIndex: number): void {
-    const textClip: Clip = {
-      id: `text-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: template.name,
-      type: 'text',
-      trackType: 'text',
-      trackIndex: 0,
-      inPoint: 0,
-      outPoint: 5,
-      duration: 5,
-      startTime: this.currentTime,
-      endTime: this.currentTime + 5,
-      effects: [],
-      keyframes: [],
-      opacity: 100,
-      scale: 100,
-      rotation: 0
-    };
+    // Add to layer and project
+    layer.clips.push(newClip);
+    this.project.clips.push(newClip);
     
-    this.clips.push(textClip);
-    this.saveState();
-    this.showToast(`Added ${template.name} text`, 'success');
+    this.saveHistoryState(`Added ${media.title} to ${layer.label}`, 'add_clip');
+    this.showToast(`Added "${media.title}" to ${layer.label}`, 'success');
   }
 
-  private moveClip(dragData: any, dropData: any, event: CdkDragDrop<any>): void {
-    const clip = this.clips.find(c => c.id === dragData.id);
-    if (clip) {
-      // Calculate new position
-      if (event.container && event.container.element) {
-        const rect = event.container.element.nativeElement.getBoundingClientRect();
-        const dropX = event.dropPoint?.x || 0;
-        const newTime = Math.max(0, ((dropX - rect.left) / rect.width) * this.totalDuration);
-        
-        clip.startTime = newTime;
-        clip.endTime = newTime + clip.duration;
-      }
+  selectClip(clip: Clip, event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation();
       
-      clip.trackType = dropData.type;
-      clip.trackIndex = dropData.index;
-      this.saveState();
-      this.showToast(`Moved ${clip.name} to ${dropData.type} track ${dropData.index + 1}`, 'info');
-    }
-  }
-
-  private findNextAvailableTime(trackType: 'video' | 'audio' | 'text', trackIndex: number): number {
-    const trackClips = this.getClipsForTrack(trackType, trackIndex);
-    if (trackClips.length === 0) return 0;
-    
-    const lastClip = trackClips[trackClips.length - 1];
-    return lastClip.endTime;
-  }
-
-  private generateWaveform(): number[] {
-    // Generate fake waveform data
-    return Array.from({ length: 100 }, () => Math.random() * 100);
-  }
-
-  // Trimming
-  startTrimming(clip: Clip, side: 'left' | 'right', event: MouseEvent): void {
-    event.stopPropagation();
-    this.isTrimming = true;
-    this.trimClip = clip;
-    this.trimSide = side;
-    this.trimStartX = event.clientX;
-    this.trimStartTime = side === 'left' ? clip.startTime : clip.endTime;
-    
-    document.addEventListener('mousemove', this.onMouseMove);
-    document.addEventListener('mouseup', this.onMouseUp);
-  }
-
-  private onMouseMove = (event: MouseEvent): void => {
-    if (this.isTrimming && this.trimClip) {
-      const deltaX = event.clientX - this.trimStartX;
-      const deltaTime = (deltaX / 1000) * this.totalDuration * (100 / this.timelineZoom);
-      
-      if (this.trimSide === 'left') {
-        const newStartTime = Math.max(0, this.trimStartTime + deltaTime);
-        const maxStartTime = this.trimClip.endTime - 0.1; // Minimum duration
-        this.trimClip.startTime = Math.min(newStartTime, maxStartTime);
-        this.trimClip.duration = this.trimClip.endTime - this.trimClip.startTime;
-      } else {
-        const newEndTime = Math.min(this.totalDuration, this.trimStartTime + deltaTime);
-        const minEndTime = this.trimClip.startTime + 0.1; // Minimum duration
-        this.trimClip.endTime = Math.max(newEndTime, minEndTime);
-        this.trimClip.duration = this.trimClip.endTime - this.trimClip.startTime;
-      }
-    } else if (this.isDraggingPlayhead) {
-      const rect = document.querySelector('.timeline-tracks')?.getBoundingClientRect();
-      if (rect) {
-        const x = event.clientX - rect.left;
-        const newTime = Math.max(0, Math.min(this.totalDuration, (x / rect.width) * this.totalDuration));
-        this.currentTime = newTime;
-        
-        if (this.videoPlayer?.nativeElement) {
-          this.videoPlayer.nativeElement.currentTime = newTime;
+      if (event.ctrlKey || event.metaKey) {
+        // Multi-select
+        const index = this.selectedClips.findIndex(c => c.id === clip.id);
+        if (index >= 0) {
+          this.selectedClips.splice(index, 1);
+        } else {
+          this.selectedClips.push(clip);
         }
+      } else {
+        // Single select
+        this.selectedClips = [clip];
       }
-    }
-  };
-
-  private onMouseUp = (): void => {
-    if (this.isTrimming) {
-      this.isTrimming = false;
-      this.trimClip = null;
-      this.saveState();
-      this.showToast('Clip trimmed', 'info');
+    } else {
+      this.selectedClips = [clip];
     }
     
-    if (this.isDraggingPlayhead) {
-      this.isDraggingPlayhead = false;
-    }
+    this.selectedClip = this.selectedClips[0] || null;
+    this.showToast(`Selected ${this.selectedClips.length} clip(s)`, 'info');
+  }
+
+  deleteSelectedClips(): void {
+    if (this.selectedClips.length === 0) return;
     
-    document.removeEventListener('mousemove', this.onMouseMove);
-    document.removeEventListener('mouseup', this.onMouseUp);
-  };
-
-  // Playhead
-  getPlayheadPosition(): number {
-    return (this.currentTime / this.totalDuration) * (this.timelineZoom / 100) * 1000;
-  }
-
-  startPlayheadDrag(event: MouseEvent): void {
-    event.preventDefault();
-    this.isDraggingPlayhead = true;
-    this.playheadStartX = event.clientX;
-    
-    document.addEventListener('mousemove', this.onMouseMove);
-    document.addEventListener('mouseup', this.onMouseUp);
-  }
-
-  // Clip operations
-  getClipPosition(clip: Clip): number {
-    return (clip.startTime / this.totalDuration) * (this.timelineZoom / 100) * 1000;
-  }
-
-  getClipWidth(clip: Clip): number {
-    return (clip.duration / this.totalDuration) * (this.timelineZoom / 100) * 1000;
-  }
-
-  updateClipProperty(property: string, event: Event): void {
-    if (!this.selectedClip) return;
-    
-    const target = event.target as HTMLInputElement;
-    const value = target.type === 'number' ? parseFloat(target.value) : target.value;
-    
-    (this.selectedClip as any)[property] = value;
-    this.saveState();
-    this.showToast(`Updated ${property}`, 'info');
-  }
-
-  nudgeClip(seconds: number): void {
-    if (!this.selectedClip) return;
-    
-    const newStartTime = Math.max(0, this.selectedClip.startTime + seconds);
-    const newEndTime = newStartTime + this.selectedClip.duration;
-    
-    if (newEndTime <= this.totalDuration) {
-      this.selectedClip.startTime = newStartTime;
-      this.selectedClip.endTime = newEndTime;
-      this.saveState();
-      this.showToast(`Nudged ${this.selectedClip.name}`, 'info');
-    }
-  }
-
-  // Context menu operations
-  private showContextMenu(x: number, y: number, clip?: Clip): void {
-    this.contextMenu = { visible: true, x, y, clip };
-  }
-
-  private hideContextMenu(): void {
-    this.contextMenu.visible = false;
-  }
-
-  @HostListener('document:click')
-  onDocumentClick(): void {
-    this.hideContextMenu();
-  }
-
-  splitClip(): void {
-    if (!this.contextMenu.clip) return;
-    
-    const clip = this.contextMenu.clip;
-    const splitTime = this.currentTime;
-    
-    if (splitTime > clip.startTime && splitTime < clip.endTime) {
-      const newClip: Clip = {
-        ...JSON.parse(JSON.stringify(clip)),
-        id: `${clip.type}-${Date.now()}`,
-        startTime: splitTime,
-        endTime: clip.endTime,
-        duration: clip.endTime - splitTime
-      };
+    this.selectedClips.forEach(clip => {
+      // Remove from layer
+      const layer = this.timeline.layers.find(l => l.number === clip.layer);
+      if (layer) {
+        layer.clips = layer.clips.filter(c => c.id !== clip.id);
+      }
       
-      clip.endTime = splitTime;
-      clip.duration = splitTime - clip.startTime;
-      
-      this.clips.push(newClip);
-      this.saveState();
-      this.showToast(`Split ${clip.name}`, 'success');
-    }
-    
-    this.hideContextMenu();
-  }
-
-  duplicateClip(): void {
-    if (!this.contextMenu.clip) return;
-    
-    const clip = this.contextMenu.clip;
-    const newClip: Clip = {
-      ...JSON.parse(JSON.stringify(clip)),
-      id: `${clip.type}-${Date.now()}`,
-      startTime: clip.endTime,
-      endTime: clip.endTime + clip.duration,
-      name: `${clip.name} Copy`
-    };
-    
-    this.clips.push(newClip);
-    this.saveState();
-    this.showToast(`Duplicated ${clip.name}`, 'success');
-    this.hideContextMenu();
-  }
-
-  extractAudio(): void {
-    if (!this.contextMenu.clip || this.contextMenu.clip.type !== 'video') return;
-    
-    const videoClip = this.contextMenu.clip;
-    const audioClip: Clip = {
-      ...JSON.parse(JSON.stringify(videoClip)),
-      id: `audio-${Date.now()}`,
-      type: 'audio',
-      trackType: 'audio',
-      trackIndex: 0,
-      name: `${videoClip.name} Audio`,
-      waveform: this.generateWaveform()
-    };
-    
-    this.clips.push(audioClip);
-    this.saveState();
-    this.showToast(`Extracted audio from ${videoClip.name}`, 'success');
-    this.hideContextMenu();
-  }
-
-  deleteClip(): void {
-    const clipToDelete = this.contextMenu.clip || this.selectedClip;
-    if (!clipToDelete) return;
-    
-    this.clips = this.clips.filter(c => c.id !== clipToDelete.id);
-    if (this.selectedClip?.id === clipToDelete.id) {
-      this.selectedClip = null;
-    }
-    this.saveState();
-    this.showToast(`Deleted ${clipToDelete.name}`, 'success');
-    this.hideContextMenu();
-  }
-
-  private splitClipsAtTime(trackType: 'video' | 'audio' | 'text', trackIndex: number, time: number): void {
-    const trackClips = this.getClipsForTrack(trackType, trackIndex);
-    const clipsToSplit = trackClips.filter(clip => 
-      time > clip.startTime && time < clip.endTime
-    );
-    
-    clipsToSplit.forEach(clip => {
-      const newClip: Clip = {
-        ...JSON.parse(JSON.stringify(clip)),
-        id: `${clip.type}-${Date.now()}`,
-        startTime: time,
-        endTime: clip.endTime,
-        duration: clip.endTime - time
-      };
-      
-      clip.endTime = time;
-      clip.duration = time - clip.startTime;
-      
-      this.clips.push(newClip);
+      // Remove from project
+      this.project.clips = this.project.clips.filter(c => c.id !== clip.id);
     });
     
-    if (clipsToSplit.length > 0) {
-      this.saveState();
-      this.showToast(`Split ${clipsToSplit.length} clip(s)`, 'success');
+    this.saveHistoryState(`Deleted ${this.selectedClips.length} clip(s)`, 'delete_clips');
+    this.showToast(`Deleted ${this.selectedClips.length} clip(s)`, 'success');
+    this.selectedClips = [];
+    this.selectedClip = null;
+  }
+
+  // Effects (OpenShot style)
+  applyEffectToSelectedClips(effect: Effect): void {
+    if (this.selectedClips.length === 0) {
+      this.showToast('Please select clips first', 'warning');
+      return;
     }
-  }
-
-  // Effects and tools
-  applyEffect(effect: Effect): void {
-    if (this.selectedClip) {
-      if (!this.selectedClip.effects) {
-        this.selectedClip.effects = [];
-      }
-      this.selectedClip.effects.push(effect);
-      this.saveState();
-      this.showToast(`Applied ${effect.name} effect`, 'success');
-    } else {
-      this.showToast('Please select a clip first', 'warning');
-    }
-  }
-
-  removeEffect(index: number): void {
-    if (this.selectedClip?.effects) {
-      const effect = this.selectedClip.effects[index];
-      this.selectedClip.effects.splice(index, 1);
-      this.saveState();
-      this.showToast(`Removed ${effect.name} effect`, 'info');
-    }
-  }
-
-  addTextElement(template: TitleTemplate): void {
-    this.addTextToTimeline(template, 0);
-  }
-
-  // Audio tools
-  openAudioTool(toolType: string): void {
-    const tool = this.audioTools.find(t => t.type === toolType);
-    if (tool) {
-      this.showToast(`Opening ${tool.name}...`, 'info');
-    }
-  }
-
-  // Caption tools
-  generateAutoCaption(): void {
-    this.isLoading = true;
-    this.loadingMessage = 'Generating automatic captions...';
     
-    setTimeout(() => {
-      this.isLoading = false;
-      this.showToast('Captions generated successfully!', 'success');
-    }, 3000);
+    this.selectedClips.forEach(clip => {
+      const effectCopy = JSON.parse(JSON.stringify(effect));
+      effectCopy.id = `effect-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      clip.effects.push(effectCopy);
+    });
+    
+    this.saveHistoryState(`Applied ${effect.type} effect`, 'apply_effect');
+    this.showToast(`Applied ${effect.type} to ${this.selectedClips.length} clip(s)`, 'success');
   }
 
-  importSubtitles(): void {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.srt,.vtt,.ass';
-    input.onchange = (e: any) => {
-      const file = e.target.files[0];
-      if (file) {
-        this.showToast(`Importing subtitles from ${file.name}...`, 'info');
-        setTimeout(() => {
-          this.showToast('Subtitles imported successfully!', 'success');
-        }, 1500);
-      }
-    };
-    input.click();
+  removeEffectFromClip(clip: Clip, effectIndex: number): void {
+    if (clip.effects && effectIndex >= 0 && effectIndex < clip.effects.length) {
+      const effect = clip.effects[effectIndex];
+      clip.effects.splice(effectIndex, 1);
+      this.saveHistoryState(`Removed ${effect.type} effect`, 'remove_effect');
+      this.showToast(`Removed ${effect.type} effect`, 'info');
+    }
   }
 
-  // Export
-  openExportModal(): void {
+  // Project management
+  saveProject(): void {
+    // In a real implementation, this would save to backend
+    const projectData = JSON.stringify(this.project, null, 2);
+    console.log('Saving project:', projectData);
+    this.showToast('Project saved', 'success');
+  }
+
+  exportProject(): void {
     this.showExportModal = true;
   }
 
@@ -1370,35 +1296,43 @@ export class StudioComponent implements OnInit, OnDestroy {
     
     // Simulate export process
     const interval = setInterval(() => {
-      this.exportProgress += 5;
+      this.exportProgress += 2;
       
       if (this.exportProgress >= 100) {
         clearInterval(interval);
         this.isExporting = false;
         this.showToast('Video exported successfully!', 'success');
         this.closeExportModal();
-        
-        // Simulate download
-        const link = document.createElement('a');
-        link.href = '#';
-        link.download = `${this.currentProjectName}.${this.exportSettings.format}`;
-        link.click();
       }
     }, 100);
   }
 
   // Utility methods
   formatTime(seconds: number): string {
-    if (!seconds || isNaN(seconds)) return '00:00';
+    if (!seconds || isNaN(seconds)) return '00:00:00';
     
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
     
-    if (hours > 0) {
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  formatFrame(frame: number): string {
+    return frame.toString().padStart(6, '0');
+  }
+
+  // Timeline position calculations
+  getClipLeft(clip: Clip): number {
+    return clip.position * this.timelineScale;
+  }
+
+  getClipWidth(clip: Clip): number {
+    return clip.duration * this.timelineScale;
+  }
+
+  getPlayheadLeft(): number {
+    return this.timeline.playhead_position * this.timelineScale;
   }
 
   // TrackBy functions for performance
@@ -1410,33 +1344,30 @@ export class StudioComponent implements OnInit, OnDestroy {
     return media.id;
   }
 
-  trackByEffectId(index: number, effect: Effect): string {
-    return effect.id;
-  }
-
-  trackByTemplateId(index: number, template: TitleTemplate): string {
-    return template.id;
-  }
-
-  trackByToolType(index: number, tool: AudioTool): string {
-    return tool.type;
-  }
-
   trackByClipId(index: number, clip: Clip): string {
     return clip.id;
   }
 
-  trackByMarkerTime(index: number, marker: TimeMarker): string {
-    return marker.time;
+  trackByLayerId(index: number, layer: Layer): string {
+    return layer.id;
   }
 
-  trackByToastId(index: number, toast: Toast): string {
-    return toast.id;
+  trackByEffectId(index: number, effect: Effect): string {
+    return effect.id;
   }
+
+  // Mouse event handlers
+  private onMouseMove = (event: MouseEvent): void => {
+    // Handle trimming, playhead dragging, etc.
+  };
+
+  private onMouseUp = (): void => {
+    // Clean up mouse operations
+  };
 
   // Toast notifications
   private showToast(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info'): void {
-    const toast: Toast = {
+    const toast = {
       id: (++this.toastIdCounter).toString(),
       message,
       type
@@ -1444,7 +1375,6 @@ export class StudioComponent implements OnInit, OnDestroy {
     
     this.toasts.push(toast);
     
-    // Auto-dismiss after 4 seconds
     setTimeout(() => {
       this.dismissToast(toast.id);
     }, 4000);
@@ -1452,5 +1382,39 @@ export class StudioComponent implements OnInit, OnDestroy {
 
   dismissToast(toastId: string): void {
     this.toasts = this.toasts.filter(t => t.id !== toastId);
+  }
+
+  // Placeholder methods for template
+  onMediaThumbnailError(event: Event, media: MediaDto): void {
+    console.error('Media thumbnail failed to load:', media.title);
+  }
+
+  onThumbnailLoaded(event: Event): void {
+    const video = event.target as HTMLVideoElement;
+    video.currentTime = 1;
+  }
+
+  addTextElement(template: any): void {
+    // Add text element to timeline
+  }
+
+  openAudioTool(toolType: string): void {
+    this.showToast(`Opening ${toolType} tool...`, 'info');
+  }
+
+  generateAutoCaption(): void {
+    this.showToast('Generating auto captions...', 'info');
+  }
+
+  importSubtitles(): void {
+    this.showToast('Import subtitles feature coming soon', 'info');
+  }
+
+  private moveClip(dragData: any, dropData: any, event: any): void {
+    // Move clip between layers
+  }
+
+  private addTransition(transition: Effect, layerId: string, event: any): void {
+    // Add transition between clips
   }
 }
