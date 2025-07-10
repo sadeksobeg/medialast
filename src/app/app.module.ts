@@ -14,6 +14,7 @@ import { provideAccountConfig } from '@abp/ng.account/config';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { DragDropModule } from '@angular/cdk/drag-drop';
 import { environment } from '../environments/environment';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -26,6 +27,7 @@ import { AccountLayoutModule } from '@abp/ng.theme.lepton-x/account';
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
+    DragDropModule,
     AppRoutingModule,
     CoreModule,
     ThemeSharedModule,

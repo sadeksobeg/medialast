@@ -1,8 +1,9 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DragDropModule } from '@angular/cdk/drag-drop'; // Import DragDropModule
+import { DragDropModule } from '@angular/cdk/drag-drop';
 import { RouterModule } from '@angular/router'; // Import RouterModule
 import { FormsModule } from '@angular/forms'; // Import FormsModule
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { MediaService } from '../proxy/medias/media.service'; // Import MediaService
 
 import { StudioRoutingModule } from './studio-routing.module';
@@ -19,9 +20,9 @@ import { StudioActionButtonComponent } from './studio-action-button/studio-actio
     CommonModule,
     RouterModule,
     FormsModule,
+    DragDropModule,
     StudioRoutingModule,
     StudioActionButtonComponent,
-    DragDropModule,
     MediaBinComponent // Move MediaBinComponent here
   ],
   providers: [

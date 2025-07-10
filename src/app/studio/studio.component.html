@@ -146,7 +146,7 @@
             <div 
               class="media-item" 
               *ngFor="let media of filteredMedia; trackBy: trackByMediaId"
-              cdkDrag
+              cdkDrag="true"
               [cdkDragData]="{ type: 'media', media: media }"
               (click)="selectMedia(media)"
               [class.selected]="selectedMedia?.id === media.id"
@@ -205,7 +205,7 @@
             <div 
               class="effect-item" 
               *ngFor="let effect of videoEffects; trackBy: trackByEffectId"
-              cdkDrag
+              cdkDrag="true"
               [cdkDragData]="{ type: 'effect', effect: effect }"
               (click)="applyEffect(effect)"
             >
@@ -231,7 +231,7 @@
             <button 
               class="text-item" 
               *ngFor="let template of titleTemplates; trackBy: trackByTemplateId"
-              cdkDrag
+              cdkDrag="true"
               [cdkDragData]="{ type: 'text', template: template }"
               (click)="addTextElement(template)"
             >
@@ -285,7 +285,7 @@
     <main class="preview-area">
       <div 
         class="preview-container"
-        cdkDropList
+        cdkDropList="true"
         [cdkDropListData]="{ type: 'preview' }"
         (cdkDropListDropped)="onPreviewDrop($event)"
       >
@@ -465,7 +465,7 @@
           <div 
             class="track video-track" 
             *ngFor="let trackIndex of videoTracks; trackBy: trackByIndex"
-            cdkDropList
+            cdkDropList="true"
             [cdkDropListData]="{ type: 'video', index: trackIndex }"
             (cdkDropListDropped)="onClipDrop($event)"
             (click)="onTrackClick('video', trackIndex, $event)"
@@ -493,7 +493,7 @@
                 [style.width.px]="getClipWidth(clip)"
                 (click)="selectClip(clip, $event)"
                 (contextmenu)="onClipRightClick(clip, $event)"
-                cdkDrag
+                cdkDrag="true"
                 [cdkDragData]="clip"
                 (cdkDragStarted)="onClipDragStart(clip)"
                 (cdkDragEnded)="onClipDragEnd(clip, $event)"
@@ -526,7 +526,7 @@
           <div 
             class="track audio-track" 
             *ngFor="let trackIndex of audioTracks; trackBy: trackByIndex"
-            cdkDropList
+            cdkDropList="true"
             [cdkDropListData]="{ type: 'audio', index: trackIndex }"
             (cdkDropListDropped)="onClipDrop($event)"
             (click)="onTrackClick('audio', trackIndex, $event)"
@@ -565,7 +565,7 @@
                 [style.width.px]="getClipWidth(clip)"
                 (click)="selectClip(clip, $event)"
                 (contextmenu)="onClipRightClick(clip, $event)"
-                cdkDrag
+                cdkDrag="true"
                 [cdkDragData]="clip"
                 (cdkDragStarted)="onClipDragStart(clip)"
                 (cdkDragEnded)="onClipDragEnd(clip, $event)"
@@ -600,7 +600,7 @@
         <div class="tracks-container">
           <div 
             class="track text-track"
-            cdkDropList
+            cdkDropList="true"
             [cdkDropListData]="{ type: 'text', index: 0 }"
             (cdkDropListDropped)="onClipDrop($event)"
           >
@@ -627,7 +627,7 @@
                 [style.width.px]="getClipWidth(clip)"
                 (click)="selectClip(clip, $event)"
                 (contextmenu)="onClipRightClick(clip, $event)"
-                cdkDrag
+                cdkDrag="true"
                 [cdkDragData]="clip"
               >
                 <div class="clip-content">
