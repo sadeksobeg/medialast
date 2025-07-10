@@ -6,7 +6,7 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
           <path d="M8,5.14V19.14L19,12.14L8,5.14Z"/>
         </svg>
-        <span>Shotcut Studio</span>
+        <span>Professional Video Studio</span>
       </div>
       
       <div class="menu-items">
@@ -16,6 +16,7 @@
         <button class="menu-btn">Timeline</button>
         <button class="menu-btn">Filters</button>
         <button class="menu-btn">Settings</button>
+        <button class="menu-btn" (click)="toggleApiConsole()">API Console</button>
       </div>
     </div>
     
@@ -46,43 +47,27 @@
 
     <!-- Right Panel - Properties (Optional) -->
     <div class="right-panel">
-      <div class="properties-panel">
-        <div class="panel-header">
-          <h3>Properties</h3>
-        </div>
-        <div class="panel-content">
-          <div class="property-section" *ngIf="timeline">
-            <h4>Timeline</h4>
-            <div class="property-item">
-              <label>Duration:</label>
-              <span>{{ formatTime(timeline.duration) }}</span>
-            </div>
-            <div class="property-item">
-              <label>FPS:</label>
-              <span>{{ timeline.fps }}</span>
-            </div>
-            <div class="property-item">
-              <label>Resolution:</label>
-              <span>{{ timeline.width }}x{{ timeline.height }}</span>
-            </div>
-          </div>
-          
-          <div class="property-section">
-            <h4>Playback</h4>
-            <div class="property-item">
-              <label>Position:</label>
-              <span>{{ formatTime(playback.position) }}</span>
-            </div>
-            <div class="property-item">
-              <label>Speed:</label>
-              <span>{{ playback.speed }}x</span>
-            </div>
-            <div class="property-item">
-              <label>Volume:</label>
-              <span>{{ (playback.volume * 100) | number:'1.0-0' }}%</span>
-            </div>
-          </div>
-        </div>
+      <!-- API Console or Timeline Visualizer -->
+      <div class="panel-tabs">
+        <button 
+          class="tab-btn"
+          [class.active]="activeRightPanel === 'visualizer'"
+          (click)="activeRightPanel = 'visualizer'"
+        >
+          Timeline
+        </button>
+        <button 
+          class="tab-btn"
+          [class.active]="activeRightPanel === 'console'"
+          (click)="activeRightPanel = 'console'"
+        >
+          API Console
+        </button>
+      </div>
+      
+      <div class="panel-content">
+        <app-timeline-visualizer *ngIf="activeRightPanel === 'visualizer'"></app-timeline-visualizer>
+        <app-api-console *ngIf="activeRightPanel === 'console'"></app-api-console>
       </div>
     </div>
   </div>

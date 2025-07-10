@@ -8,9 +8,12 @@ import { Subject, takeUntil } from 'rxjs';
 // Import our new services and components
 import { TimelineService } from './services/timeline.service';
 import { StudioMediaService } from './services/media.service';
+import { VideoEditingApiService } from './services/video-editing-api.service';
 import { TimelineComponent } from './components/timeline/timeline.component';
 import { MediaBinComponent } from './components/media-bin/media-bin.component';
 import { PreviewComponent } from './components/preview/preview.component';
+import { ApiConsoleComponent } from './components/api-console/api-console.component';
+import { TimelineVisualizerComponent } from './components/timeline-visualizer/timeline-visualizer.component';
 import { Timeline, PlaybackState, Resource } from './models/studio.models';
 
 // OpenShot-inspired interfaces for professional video editing
@@ -201,7 +204,9 @@ interface PreviewSettings {
     DragDropModule,
     TimelineComponent,
     MediaBinComponent,
-    PreviewComponent
+    PreviewComponent,
+    ApiConsoleComponent,
+    TimelineVisualizerComponent
   ],
   templateUrl: './studio.component.html',
   styleUrls: ['./studio.component.scss']
@@ -233,12 +238,14 @@ export class StudioComponent implements OnInit, OnDestroy {
   resources: Resource[] = [];
   projectName = 'Untitled Project';
   isFullscreen = false;
+  activeRightPanel: 'visualizer' | 'console' = 'visualizer';
 
   private destroy$ = new Subject<void>();
 
   constructor(
     private timelineService: TimelineService,
     private mediaService: StudioMediaService,
+    private apiService: VideoEditingApiService,
     private router: Router,
     private cdr: ChangeDetectorRef
   ) {
@@ -262,6 +269,9 @@ export class StudioComponent implements OnInit, OnDestroy {
       .subscribe(resources => {
         this.resources = resources;
       });
+
+    // Initialize API service with default project
+    this.apiService.createProject('Professional Video Project');
   }
 
   ngOnDestroy(): void {
@@ -396,5 +406,21 @@ export class StudioComponent implements OnInit, OnDestroy {
     } else {
       document.exitFullscreen();
     }
+  }
+
+  toggleApiConsole(): void {
+    this.activeRightPanel = this.activeRightPanel === 'console' ? 'visualizer' : 'console';
+  }
+
+  formatTime(seconds: number): string {
+    if (!seconds || isNaN(seconds)) return '00:00';
+    
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  private setTool(tool: string): void {
+    console.log(`Selected tool: ${tool}`);
   }
 }
