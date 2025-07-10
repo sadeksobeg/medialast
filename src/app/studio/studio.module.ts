@@ -1,35 +1,21 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DragDropModule } from '@angular/cdk/drag-drop';
-import { RouterModule } from '@angular/router'; // Import RouterModule
-import { FormsModule } from '@angular/forms'; // Import FormsModule
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { MediaService } from '../proxy/medias/media.service'; // Import MediaService
+import { FormsModule } from '@angular/forms';
 
 import { StudioRoutingModule } from './studio-routing.module';
 import { StudioComponent } from './studio.component';
-import { MediaBinComponent } from './media-bin/media-bin.component';
-import { StudioActionButtonComponent } from './studio-action-button/studio-action-button.component';
 
 
 @NgModule({
   declarations: [
-    StudioComponent
   ],
   imports: [
     CommonModule,
-    RouterModule,
     FormsModule,
-    DragDropModule,
     StudioRoutingModule,
-    StudioActionButtonComponent,
-    MediaBinComponent // Move MediaBinComponent here
-  ],
-  providers: [
-    MediaService
-  ],
-  exports: [
     StudioComponent
-  ]
+  ],
+  providers: [],
+  exports: []
 })
 export class StudioModule { }
