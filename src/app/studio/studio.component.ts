@@ -493,7 +493,7 @@ export class StudioComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Media management
+  // Media management - FIXED VIDEO LOADING
   loadMedia(): void {
     this.isLoading = true;
     this.loadingMessage = 'Loading media library...';
@@ -504,12 +504,42 @@ export class StudioComponent implements OnInit, OnDestroy {
       sorting: 'title'
     }).subscribe({
       next: (response) => {
-        this.allMedia = response.items?.filter(media => 
-          media.video && media.video.trim() !== ''
-        ) || [];
+        console.log('Raw media response:', response);
+        
+        // Process media items and create proper video URLs
+        this.allMedia = (response.items || []).map(media => {
+          let processedMedia = { ...media };
+          
+          // Fix video URL if it exists
+          if (media.video && media.video.trim() !== '') {
+            // If it's already a blob URL, keep it
+            if (media.video.startsWith('blob:')) {
+              processedMedia.video = media.video;
+            }
+            // If it's a relative URL, make it absolute
+            else if (media.video.startsWith('/')) {
+              processedMedia.video = `${window.location.origin}${media.video}`;
+            }
+            // If it's already absolute, keep it
+            else if (media.video.startsWith('http')) {
+              processedMedia.video = media.video;
+            }
+            // Otherwise, try to construct a proper URL
+            else {
+              processedMedia.video = `${window.location.origin}/api/app/media/download-video/${media.id}`;
+            }
+          } else {
+            // If no video URL, try to get it from the download endpoint
+            processedMedia.video = `${window.location.origin}/api/app/media/download-video/${media.id}`;
+          }
+          
+          console.log('Processed media:', processedMedia.title, processedMedia.video);
+          return processedMedia;
+        });
+        
         this.filterMedia();
         this.isLoading = false;
-        this.showToast('Media loaded successfully', 'success');
+        this.showToast(`Loaded ${this.allMedia.length} media items`, 'success');
       },
       error: (error) => {
         console.error('Failed to load media:', error);
@@ -521,40 +551,70 @@ export class StudioComponent implements OnInit, OnDestroy {
 
   selectMedia(media: MediaDto): void {
     this.selectedMedia = media;
+    console.log('Selected media:', media);
     this.showToast(`Selected: ${media.title}`, 'info');
   }
 
+  // FIXED VIDEO PREVIEW
   addMediaToPreview(media: MediaDto): void {
+    console.log('Adding media to preview:', media);
     this.selectedMedia = media;
-    this.selectedVideoForPreview = media.video || '';
     
-    // Wait for video element to be available
-    setTimeout(() => {
-      if (this.videoPlayer?.nativeElement) {
-        const video = this.videoPlayer.nativeElement;
-        video.load(); // Force reload
-        video.currentTime = 0;
-        this.currentTime = 0;
-        this.showToast(`Now previewing: ${media.title}`, 'success');
-      }
-    }, 100);
+    if (media.video && media.video.trim() !== '') {
+      this.selectedVideoForPreview = media.video;
+      console.log('Setting video URL:', this.selectedVideoForPreview);
+      
+      // Wait for video element to be available and force reload
+      setTimeout(() => {
+        if (this.videoPlayer?.nativeElement) {
+          const video = this.videoPlayer.nativeElement;
+          console.log('Video element found, loading:', this.selectedVideoForPreview);
+          
+          // Set up event listeners for debugging
+          video.addEventListener('loadstart', () => console.log('Video load started'));
+          video.addEventListener('loadedmetadata', () => console.log('Video metadata loaded'));
+          video.addEventListener('canplay', () => console.log('Video can play'));
+          video.addEventListener('error', (e) => console.error('Video error:', e));
+          
+          video.src = this.selectedVideoForPreview;
+          video.load();
+          video.currentTime = 0;
+          this.currentTime = 0;
+          this.showToast(`Now previewing: ${media.title}`, 'success');
+        } else {
+          console.error('Video player element not found');
+        }
+      }, 100);
+    } else {
+      console.warn('No video URL available for media:', media);
+      this.showToast('No video available for this media', 'warning');
+    }
   }
 
   onMediaThumbnailError(event: Event, media: MediaDto): void {
     console.error('Media thumbnail failed to load:', media.title, media.video);
     const videoElement = event.target as HTMLVideoElement;
-    videoElement.style.opacity = '0';
+    videoElement.style.opacity = '0.3';
+    
+    // Try alternative URL
+    if (media.video && !media.video.includes('download-video')) {
+      const altUrl = `${window.location.origin}/api/app/media/download-video/${media.id}`;
+      console.log('Trying alternative URL:', altUrl);
+      videoElement.src = altUrl;
+    }
   }
 
   onThumbnailLoaded(event: Event): void {
     const video = event.target as HTMLVideoElement;
     video.currentTime = 1;
+    video.style.opacity = '1';
   }
 
   openImportDialog(): void {
     this.fileInput.nativeElement.click();
   }
 
+  // IMPROVED FILE IMPORT
   handleFileImport(event: Event): void {
     const input = event.target as HTMLInputElement;
     const files = input.files;
@@ -567,9 +627,17 @@ export class StudioComponent implements OnInit, OnDestroy {
       
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        console.log('Processing file:', file.name, file.type, file.size);
+        
+        // Validate file type
+        if (!file.type.startsWith('video/') && !file.type.startsWith('audio/') && !file.type.startsWith('image/')) {
+          console.warn('Skipping unsupported file type:', file.type);
+          continue;
+        }
         
         // Create blob URL for immediate use
         const blobUrl = URL.createObjectURL(file);
+        console.log('Created blob URL:', blobUrl);
         
         // Create media DTO
         const mediaDto = {
@@ -600,21 +668,27 @@ export class StudioComponent implements OnInit, OnDestroy {
           countryDialect: mediaDto.countryDialect
         };
         
-        this.allMedia.push(localMedia);
+        this.allMedia.unshift(localMedia); // Add to beginning of array
         
         // Try to save to backend
         const promise = this.mediaService.create(mediaDto).toPromise()
           .then((createdMedia) => {
+            console.log('Media created on server:', createdMedia);
             // Update the local media with the server ID
             const index = this.allMedia.findIndex(m => m.id === localMedia.id);
             if (index !== -1) {
               this.allMedia[index] = { ...createdMedia, video: blobUrl };
             }
             
+            // Try to upload the actual file
             const formData = new FormData();
             formData.append('video', file, file.name);
             
             return this.mediaService.uploadVideo(createdMedia.id, formData).toPromise()
+              .then((uploadResponse) => {
+                console.log('File uploaded successfully:', uploadResponse);
+                return uploadResponse;
+              })
               .catch((uploadError) => {
                 console.warn('File upload failed, but media record created:', uploadError);
                 return createdMedia;
@@ -685,6 +759,7 @@ export class StudioComponent implements OnInit, OnDestroy {
     const video = event.target as HTMLVideoElement;
     this.totalDuration = video.duration || 240;
     this.generateTimeMarkers();
+    console.log('Video loaded successfully, duration:', this.totalDuration);
     this.showToast('Video loaded successfully', 'success');
   }
 
@@ -813,32 +888,38 @@ export class StudioComponent implements OnInit, OnDestroy {
     this.showContextMenu(event.clientX, event.clientY, clip);
   }
 
-  // Drag and Drop
+  // IMPROVED DRAG AND DROP SYSTEM
   onClipDrop(event: CdkDragDrop<any>): void {
+    console.log('Clip drop event:', event);
     const dragData = event.item.data;
     const dropData = event.container.data;
     
-    if (dragData.type === 'media' && dragData.media) {
-      this.addMediaToTimeline(dragData.media, dropData.type, dropData.index);
-    } else if (dragData.type === 'effect' && dragData.effect) {
+    console.log('Drag data:', dragData);
+    console.log('Drop data:', dropData);
+    
+    if (dragData?.type === 'media' && dragData.media) {
+      this.addMediaToTimeline(dragData.media, dropData.type, dropData.index, event);
+    } else if (dragData?.type === 'effect' && dragData.effect) {
       this.applyEffect(dragData.effect);
-    } else if (dragData.type === 'text' && dragData.template) {
+    } else if (dragData?.type === 'text' && dragData.template) {
       this.addTextToTimeline(dragData.template, dropData.index);
-    } else if (dragData.id) {
+    } else if (dragData?.id) {
       // Moving existing clip
       this.moveClip(dragData, dropData, event);
     }
   }
 
   onPreviewDrop(event: CdkDragDrop<any>): void {
+    console.log('Preview drop event:', event);
     const dragData = event.item.data;
     
-    if (dragData.type === 'media' && dragData.media) {
+    if (dragData?.type === 'media' && dragData.media) {
       this.addMediaToPreview(dragData.media);
     }
   }
 
   onMediaLibraryDrop(event: CdkDragDrop<any>): void {
+    console.log('Media library drop event:', event);
     // Handle files dropped into media library
     if (event.item.data?.files) {
       this.handleFileImport(event.item.data.files);
@@ -846,10 +927,12 @@ export class StudioComponent implements OnInit, OnDestroy {
   }
 
   onClipDragStart(clip: Clip): void {
+    console.log('Clip drag started:', clip);
     this.selectedClip = clip;
   }
 
   onClipDragEnd(clip: Clip, event: any): void {
+    console.log('Clip drag ended:', clip, event);
     // Update clip position based on drop location
     const dropPoint = event.dropPoint;
     if (dropPoint) {
@@ -865,18 +948,44 @@ export class StudioComponent implements OnInit, OnDestroy {
     }
   }
 
-  private addMediaToTimeline(media: MediaDto, trackType: 'video' | 'audio', trackIndex: number): void {
+  // IMPROVED TIMELINE ADDITION
+  private addMediaToTimeline(media: MediaDto, trackType: 'video' | 'audio', trackIndex: number, event?: any): void {
+    console.log('Adding media to timeline:', media, trackType, trackIndex);
+    
+    // Calculate drop position if available
+    let startTime = 0;
+    if (event && event.container && event.container.element) {
+      const rect = event.container.element.nativeElement.getBoundingClientRect();
+      const dropX = event.dropPoint?.x || event.currentIndex * 100; // Fallback calculation
+      startTime = Math.max(0, ((dropX - rect.left) / rect.width) * this.totalDuration);
+    } else {
+      startTime = this.findNextAvailableTime(trackType, trackIndex);
+    }
+    
+    // Determine duration based on media type
+    let duration = 30; // Default duration
+    if (media.video && this.videoPlayer?.nativeElement) {
+      // Try to get actual duration from video element
+      const tempVideo = document.createElement('video');
+      tempVideo.src = media.video;
+      tempVideo.addEventListener('loadedmetadata', () => {
+        if (tempVideo.duration && !isNaN(tempVideo.duration)) {
+          duration = tempVideo.duration;
+        }
+      });
+    }
+    
     const newClip: Clip = {
-      id: `${trackType}-${Date.now()}`,
+      id: `${trackType}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: media.title || 'Untitled',
       type: trackType,
       trackType: trackType,
       trackIndex: trackIndex,
       inPoint: 0,
-      outPoint: 30,
-      duration: 30,
-      startTime: this.findNextAvailableTime(trackType, trackIndex),
-      endTime: 0,
+      outPoint: duration,
+      duration: duration,
+      startTime: startTime,
+      endTime: startTime + duration,
       src: media.video || '',
       thumbnail: media.video || '',
       mediaId: media.id,
@@ -894,15 +1003,15 @@ export class StudioComponent implements OnInit, OnDestroy {
       waveform: trackType === 'audio' ? this.generateWaveform() : undefined
     };
     
-    newClip.endTime = newClip.startTime + newClip.duration;
+    console.log('Created new clip:', newClip);
     this.clips.push(newClip);
     this.saveState();
-    this.showToast(`Added "${media.title}" to timeline`, 'success');
+    this.showToast(`Added "${media.title}" to ${trackType} track ${trackIndex + 1}`, 'success');
   }
 
   private addTextToTimeline(template: TitleTemplate, trackIndex: number): void {
     const textClip: Clip = {
-      id: `text-${Date.now()}`,
+      id: `text-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: template.name,
       type: 'text',
       trackType: 'text',
@@ -927,6 +1036,16 @@ export class StudioComponent implements OnInit, OnDestroy {
   private moveClip(dragData: any, dropData: any, event: CdkDragDrop<any>): void {
     const clip = this.clips.find(c => c.id === dragData.id);
     if (clip) {
+      // Calculate new position
+      if (event.container && event.container.element) {
+        const rect = event.container.element.nativeElement.getBoundingClientRect();
+        const dropX = event.dropPoint?.x || 0;
+        const newTime = Math.max(0, ((dropX - rect.left) / rect.width) * this.totalDuration);
+        
+        clip.startTime = newTime;
+        clip.endTime = newTime + clip.duration;
+      }
+      
       clip.trackType = dropData.type;
       clip.trackIndex = dropData.index;
       this.saveState();
