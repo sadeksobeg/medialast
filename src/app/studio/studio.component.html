@@ -136,7 +136,13 @@
             </button>
           </div>
           
-          <div class="media-grid" *ngIf="filteredMedia.length > 0; else noMediaTemplate">
+          <div 
+            class="media-grid" 
+            *ngIf="filteredMedia.length > 0; else noMediaTemplate"
+            cdkDropList
+            [cdkDropListData]="{ type: 'media-library' }"
+            (cdkDropListDropped)="onMediaLibraryDrop($event)"
+          >
             <div 
               class="media-item" 
               *ngFor="let media of filteredMedia; trackBy: trackByMediaId"
@@ -154,6 +160,7 @@
                   muted
                   crossorigin="anonymous"
                   (error)="onMediaThumbnailError($event, media)"
+                  (loadedmetadata)="onThumbnailLoaded($event)"
                 ></video>
                 <div class="media-placeholder" *ngIf="!media.video">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
@@ -224,6 +231,8 @@
             <button 
               class="text-item" 
               *ngFor="let template of titleTemplates; trackBy: trackByTemplateId"
+              cdkDrag
+              [cdkDragData]="{ type: 'text', template: template }"
               (click)="addTextElement(template)"
             >
               <div class="text-preview">{{ template.preview }}</div>
@@ -274,21 +283,26 @@
 
     <!-- Central Preview Area -->
     <main class="preview-area">
-      <div class="preview-container">
+      <div 
+        class="preview-container"
+        cdkDropList
+        [cdkDropListData]="{ type: 'preview' }"
+        (cdkDropListDropped)="onPreviewDrop($event)"
+      >
         <div class="video-preview">
           <video 
             *ngIf="selectedVideoForPreview; else videoPlaceholder" 
             [src]="selectedVideoForPreview" 
             #videoPlayer
             class="preview-video"
-           crossorigin="anonymous"
+            crossorigin="anonymous"
             (loadedmetadata)="onVideoLoaded($event)"
             (timeupdate)="onTimeUpdate($event)"
             (play)="isPlaying = true"
             (pause)="isPlaying = false"
-           (error)="onVideoError($event)"
+            (error)="onVideoError($event)"
             controls
-           preload="metadata"
+            preload="metadata"
           ></video>
           
           <ng-template #videoPlaceholder>
@@ -320,11 +334,15 @@
           <h4>Clip Properties</h4>
           <div class="property-group">
             <label>Name</label>
-            <input type="text" [(ngModel)]="selectedClip.name" class="property-input" />
+            <input type="text" [(ngModel)]="selectedClip.name" class="property-input" (change)="updateClipProperty('name', $event)" />
           </div>
           <div class="property-group">
             <label>Duration</label>
             <input type="text" [value]="formatTime(selectedClip.duration)" class="property-input" readonly />
+          </div>
+          <div class="property-group">
+            <label>Start Time</label>
+            <input type="number" [(ngModel)]="selectedClip.startTime" class="property-input" (change)="updateClipProperty('startTime', $event)" step="0.1" />
           </div>
         </div>
 
@@ -333,15 +351,54 @@
           <div class="property-group">
             <label>Opacity</label>
             <div class="slider-group">
-              <input type="range" min="0" max="100" [(ngModel)]="selectedClip.opacity" class="property-slider" />
+              <input type="range" min="0" max="100" [(ngModel)]="selectedClip.opacity" class="property-slider" (input)="updateClipProperty('opacity', $event)" />
               <span class="property-value">{{ selectedClip.opacity }}%</span>
             </div>
           </div>
           <div class="property-group">
             <label>Scale</label>
             <div class="slider-group">
-              <input type="range" min="10" max="500" [(ngModel)]="selectedClip.scale" class="property-slider" />
+              <input type="range" min="10" max="500" [(ngModel)]="selectedClip.scale" class="property-slider" (input)="updateClipProperty('scale', $event)" />
               <span class="property-value">{{ selectedClip.scale }}%</span>
+            </div>
+          </div>
+          <div class="property-group">
+            <label>Rotation</label>
+            <div class="slider-group">
+              <input type="range" min="-180" max="180" [(ngModel)]="selectedClip.rotation" class="property-slider" (input)="updateClipProperty('rotation', $event)" />
+              <span class="property-value">{{ selectedClip.rotation }}°</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="inspector-section" *ngIf="selectedClip?.type === 'audio'">
+          <h4>Audio Properties</h4>
+          <div class="property-group">
+            <label>Volume</label>
+            <div class="slider-group">
+              <input type="range" min="0" max="200" [(ngModel)]="selectedClip.volume" class="property-slider" (input)="updateClipProperty('volume', $event)" />
+              <span class="property-value">{{ selectedClip.volume }}%</span>
+            </div>
+          </div>
+          <div class="property-group">
+            <label>Pan</label>
+            <div class="slider-group">
+              <input type="range" min="-100" max="100" [(ngModel)]="selectedClip.pan" class="property-slider" (input)="updateClipProperty('pan', $event)" />
+              <span class="property-value">{{ selectedClip.pan > 0 ? 'R' : selectedClip.pan < 0 ? 'L' : 'C' }}{{ Math.abs(selectedClip.pan) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="inspector-section" *ngIf="selectedClip?.effects && selectedClip.effects.length > 0">
+          <h4>Applied Effects</h4>
+          <div class="effects-list">
+            <div class="effect-item" *ngFor="let effect of selectedClip.effects; let i = index">
+              <span>{{ effect.name }}</span>
+              <button class="remove-effect-btn" (click)="removeEffect(i)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -371,6 +428,19 @@
           />
           <span>{{ timelineZoom }}%</span>
         </div>
+
+        <div class="timeline-tools">
+          <button class="tool-btn" [class.active]="selectedTool === 'select'" (click)="setTool('select')" title="Select Tool (V)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M2,2V4H4V2H2M6,2V4H8V2H6M10,2V4H12V2H10M14,2V4H16V2H14M18,2V4H20V2H18M22,2V4H24V2H22M2,6V8H4V6H2M22,6V8H24V6H22M2,10V12H4V10H2M22,10V12H24V10H22M2,14V16H4V14H2M22,14V16H24V14H22M2,18V20H4V18H2M6,18V20H8V18H6M10,18V20H12V18H10M14,18V20H16V18H14M18,18V20H20V18H18M22,18V20H24V18H22Z"/>
+            </svg>
+          </button>
+          <button class="tool-btn" [class.active]="selectedTool === 'razor'" (click)="setTool('razor')" title="Razor Tool (C)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M9,3V4H4V6H5V7.5C5,8.33 5.67,9 6.5,9C7.33,9 8,8.33 8,7.5V6H9V7H15V6H16V7.5C16,8.33 16.67,9 17.5,9C18.33,9 19,8.33 19,7.5V6H20V4H15V3H9M9.5,13L8,17H10L11.5,13H9.5M12.5,13L14,17H16L14.5,13H12.5Z"/>
+            </svg>
+          </button>
+        </div>
       </div>
       
       <div class="time-ruler">
@@ -398,17 +468,20 @@
             cdkDropList
             [cdkDropListData]="{ type: 'video', index: trackIndex }"
             (cdkDropListDropped)="onClipDrop($event)"
+            (click)="onTrackClick('video', trackIndex, $event)"
           >
             <div class="track-controls">
               <button 
                 class="track-btn mute-btn" 
                 [class.active]="isTrackMuted('video', trackIndex)" 
                 (click)="toggleTrackMute('video', trackIndex)"
+                title="Mute Track"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z"/>
                 </svg>
               </button>
+              <span class="track-label">V{{ trackIndex + 1 }}</span>
             </div>
             
             <div class="track-content">
@@ -418,9 +491,12 @@
                 [class.selected]="selectedClip?.id === clip.id"
                 [style.left.px]="getClipPosition(clip)"
                 [style.width.px]="getClipWidth(clip)"
-                (click)="selectClip(clip)"
+                (click)="selectClip(clip, $event)"
+                (contextmenu)="onClipRightClick(clip, $event)"
                 cdkDrag
                 [cdkDragData]="clip"
+                (cdkDragStarted)="onClipDragStart(clip)"
+                (cdkDragEnded)="onClipDragEnd(clip, $event)"
               >
                 <div class="clip-content">
                   <div class="clip-thumbnail" *ngIf="clip.thumbnail">
@@ -429,6 +505,10 @@
                   <div class="clip-info">
                     <span class="clip-name">{{ clip.name }}</span>
                     <span class="clip-duration">{{ formatTime(clip.duration) }}</span>
+                  </div>
+                  <div class="clip-handles">
+                    <div class="trim-handle left" (mousedown)="startTrimming(clip, 'left', $event)"></div>
+                    <div class="trim-handle right" (mousedown)="startTrimming(clip, 'right', $event)"></div>
                   </div>
                 </div>
               </div>
@@ -449,12 +529,14 @@
             cdkDropList
             [cdkDropListData]="{ type: 'audio', index: trackIndex }"
             (cdkDropListDropped)="onClipDrop($event)"
+            (click)="onTrackClick('audio', trackIndex, $event)"
           >
             <div class="track-controls">
               <button 
                 class="track-btn mute-btn" 
                 [class.active]="isTrackMuted('audio', trackIndex)" 
                 (click)="toggleTrackMute('audio', trackIndex)"
+                title="Mute Track"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M3,9V15H7L12,20V4L7,9H3M16.59,12L14,9.41L15.41,8L18,10.59L20.59,8L22,9.41L19.41,12L22,14.59L20.59,16L18,13.41L15.41,16L14,14.59L16.59,12Z"/>
@@ -468,8 +550,10 @@
                   [value]="getTrackVolume('audio', trackIndex)" 
                   (input)="setTrackVolume('audio', trackIndex, $event)" 
                   class="fader"
+                  title="Track Volume"
                 />
               </div>
+              <span class="track-label">A{{ trackIndex + 1 }}</span>
             </div>
             
             <div class="track-content">
@@ -479,9 +563,12 @@
                 [class.selected]="selectedClip?.id === clip.id"
                 [style.left.px]="getClipPosition(clip)"
                 [style.width.px]="getClipWidth(clip)"
-                (click)="selectClip(clip)"
+                (click)="selectClip(clip, $event)"
+                (contextmenu)="onClipRightClick(clip, $event)"
                 cdkDrag
                 [cdkDragData]="clip"
+                (cdkDragStarted)="onClipDragStart(clip)"
+                (cdkDragEnded)="onClipDragEnd(clip, $event)"
               >
                 <div class="clip-content">
                   <div class="waveform" *ngIf="clip.waveform">
@@ -493,6 +580,64 @@
                   </div>
                   <div class="clip-info">
                     <span class="clip-name">{{ clip.name }}</span>
+                  </div>
+                  <div class="clip-handles">
+                    <div class="trim-handle left" (mousedown)="startTrimming(clip, 'left', $event)"></div>
+                    <div class="trim-handle right" (mousedown)="startTrimming(clip, 'right', $event)"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Text Track -->
+      <div class="track-group">
+        <div class="track-header">
+          <span class="track-type">TEXT</span>
+        </div>
+        <div class="tracks-container">
+          <div 
+            class="track text-track"
+            cdkDropList
+            [cdkDropListData]="{ type: 'text', index: 0 }"
+            (cdkDropListDropped)="onClipDrop($event)"
+          >
+            <div class="track-controls">
+              <button 
+                class="track-btn mute-btn" 
+                [class.active]="isTrackMuted('text', 0)" 
+                (click)="toggleTrackMute('text', 0)"
+                title="Hide Text"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M11.5,1L2,6V8H21V6M16,10V12A2,2 0 0,1 14,14H10A2,2 0 0,1 8,12V10H6V12A4,4 0 0,0 10,16H14A4,4 0 0,0 18,12V10M2,16V18H21V16H2Z"/>
+                </svg>
+              </button>
+              <span class="track-label">T1</span>
+            </div>
+            
+            <div class="track-content">
+              <div 
+                class="clip text-clip" 
+                *ngFor="let clip of getClipsForTrack('text', 0); trackBy: trackByClipId"
+                [class.selected]="selectedClip?.id === clip.id"
+                [style.left.px]="getClipPosition(clip)"
+                [style.width.px]="getClipWidth(clip)"
+                (click)="selectClip(clip, $event)"
+                (contextmenu)="onClipRightClick(clip, $event)"
+                cdkDrag
+                [cdkDragData]="clip"
+              >
+                <div class="clip-content">
+                  <div class="clip-info">
+                    <span class="clip-name">{{ clip.name }}</span>
+                    <span class="clip-duration">{{ formatTime(clip.duration) }}</span>
+                  </div>
+                  <div class="clip-handles">
+                    <div class="trim-handle left" (mousedown)="startTrimming(clip, 'left', $event)"></div>
+                    <div class="trim-handle right" (mousedown)="startTrimming(clip, 'right', $event)"></div>
                   </div>
                 </div>
               </div>
@@ -509,10 +654,103 @@
     </div>
   </section>
 
+  <!-- Context Menu -->
+  <div 
+    class="context-menu" 
+    *ngIf="contextMenu.visible"
+    [style.left.px]="contextMenu.x"
+    [style.top.px]="contextMenu.y"
+  >
+    <button class="context-item" (click)="splitClip()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M9,3V4H4V6H5V7.5C5,8.33 5.67,9 6.5,9C7.33,9 8,8.33 8,7.5V6H9V7H15V6H16V7.5C16,8.33 16.67,9 17.5,9C18.33,9 19,8.33 19,7.5V6H20V4H15V3H9Z"/>
+      </svg>
+      Split Clip
+    </button>
+    <button class="context-item" (click)="duplicateClip()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"/>
+      </svg>
+      Duplicate
+    </button>
+    <button class="context-item" (click)="extractAudio()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.76 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/>
+      </svg>
+      Extract Audio
+    </button>
+    <button class="context-item danger" (click)="deleteClip()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
+      </svg>
+      Delete
+    </button>
+  </div>
+
   <!-- Loading Overlay -->
   <div class="loading-overlay" *ngIf="isLoading">
     <div class="loading-spinner"></div>
     <p>{{ loadingMessage }}</p>
+  </div>
+
+  <!-- Export Modal -->
+  <div class="export-modal" *ngIf="showExportModal" (click)="closeExportModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Export Video</h2>
+        <button class="close-btn" (click)="closeExportModal()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="export-settings">
+          <div class="setting-group">
+            <label>Resolution</label>
+            <select [(ngModel)]="exportSettings.resolution" class="setting-select">
+              <option value="720p">720p (HD)</option>
+              <option value="1080p">1080p (Full HD)</option>
+              <option value="4k">4K (Ultra HD)</option>
+            </select>
+          </div>
+          
+          <div class="setting-group">
+            <label>Quality</label>
+            <select [(ngModel)]="exportSettings.quality" class="setting-select">
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="ultra">Ultra</option>
+            </select>
+          </div>
+          
+          <div class="setting-group">
+            <label>Format</label>
+            <select [(ngModel)]="exportSettings.format" class="setting-select">
+              <option value="mp4">MP4</option>
+              <option value="mov">MOV</option>
+              <option value="avi">AVI</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="export-progress" *ngIf="isExporting">
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="exportProgress"></div>
+          </div>
+          <p>Exporting... {{ exportProgress }}%</p>
+        </div>
+      </div>
+      
+      <div class="modal-actions">
+        <button class="btn btn-secondary" (click)="closeExportModal()" [disabled]="isExporting">Cancel</button>
+        <button class="btn btn-primary" (click)="startExport()" [disabled]="isExporting">
+          {{ isExporting ? 'Exporting...' : 'Export' }}
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Toast Notifications -->
@@ -536,4 +774,14 @@
       </button>
     </div>
   </div>
+
+  <!-- Hidden file input for imports -->
+  <input 
+    type="file" 
+    #fileInput 
+    style="display: none;" 
+    accept="video/*,audio/*,image/*" 
+    multiple
+    (change)="handleFileImport($event)"
+  />
 </div>

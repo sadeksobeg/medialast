@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef, OnDestroy } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, OnDestroy, HostListener } from '@angular/core';
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { MediaService } from '../proxy/medias/media.service';
 import { MediaDto } from '../proxy/medias/models';
@@ -10,7 +10,7 @@ interface Clip {
   id: string;
   name: string;
   type: 'video' | 'audio' | 'text' | 'effect' | 'transition';
-  trackType: 'video' | 'audio';
+  trackType: 'video' | 'audio' | 'text';
   trackIndex: number;
   inPoint: number;
   outPoint: number;
@@ -87,6 +87,25 @@ interface Toast {
   type: 'success' | 'error' | 'info' | 'warning';
 }
 
+interface ExportSettings {
+  resolution: string;
+  quality: string;
+  format: string;
+}
+
+interface ContextMenu {
+  visible: boolean;
+  x: number;
+  y: number;
+  clip?: Clip;
+}
+
+interface UndoRedoState {
+  clips: Clip[];
+  selectedClip: Clip | null;
+  timestamp: number;
+}
+
 @Component({
   selector: 'app-studio',
   standalone: false,
@@ -106,6 +125,7 @@ interface Toast {
 })
 export class StudioComponent implements OnInit, OnDestroy {
   @ViewChild('videoPlayer') videoPlayer!: ElementRef<HTMLVideoElement>;
+  @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   // UI State
   sidebarCollapsed: boolean = false;
@@ -113,6 +133,7 @@ export class StudioComponent implements OnInit, OnDestroy {
   activeTab: string = 'media';
   isLoading: boolean = false;
   loadingMessage: string = '';
+  selectedTool: string = 'select';
   
   // Navigation
   navTabs: NavTab[] = [
@@ -177,6 +198,35 @@ export class StudioComponent implements OnInit, OnDestroy {
   mutedTracks: { [key: string]: boolean } = {};
   soloTracks: { [key: string]: boolean } = {};
   trackVolumes: { [key: string]: number } = {};
+
+  // Context menu
+  contextMenu: ContextMenu = { visible: false, x: 0, y: 0 };
+
+  // Undo/Redo system
+  undoStack: UndoRedoState[] = [];
+  redoStack: UndoRedoState[] = [];
+  maxUndoStates: number = 50;
+
+  // Trimming state
+  isTrimming: boolean = false;
+  trimClip: Clip | null = null;
+  trimSide: 'left' | 'right' = 'left';
+  trimStartX: number = 0;
+  trimStartTime: number = 0;
+
+  // Playhead dragging
+  isDraggingPlayhead: boolean = false;
+  playheadStartX: number = 0;
+
+  // Export
+  showExportModal: boolean = false;
+  isExporting: boolean = false;
+  exportProgress: number = 0;
+  exportSettings: ExportSettings = {
+    resolution: '1080p',
+    quality: 'high',
+    format: 'mp4'
+  };
 
   // Effects and templates
   videoEffects: Effect[] = [
@@ -268,27 +318,130 @@ export class StudioComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadMedia();
     this.setupKeyboardShortcuts();
+    this.saveState(); // Initial state
   }
 
   ngOnDestroy(): void {
     this.removeKeyboardShortcuts();
+    document.removeEventListener('mousemove', this.onMouseMove);
+    document.removeEventListener('mouseup', this.onMouseUp);
   }
 
   // Keyboard shortcuts
+  @HostListener('document:keydown', ['$event'])
+  handleKeyboardShortcuts(event: KeyboardEvent): void {
+    // Prevent default for our shortcuts
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+      return; // Don't interfere with input fields
+    }
+
+    switch (event.code) {
+      case 'Space':
+        event.preventDefault();
+        this.togglePlayPause();
+        break;
+      case 'KeyS':
+        if (!event.ctrlKey && !event.metaKey) {
+          event.preventDefault();
+          this.setTool('razor');
+        }
+        break;
+      case 'KeyV':
+        if (!event.ctrlKey && !event.metaKey) {
+          event.preventDefault();
+          this.setTool('select');
+        }
+        break;
+      case 'KeyC':
+        if (!event.ctrlKey && !event.metaKey) {
+          event.preventDefault();
+          this.setTool('razor');
+        }
+        break;
+      case 'Delete':
+      case 'Backspace':
+        if (this.selectedClip) {
+          event.preventDefault();
+          this.deleteClip();
+        }
+        break;
+      case 'KeyZ':
+        if (event.ctrlKey || event.metaKey) {
+          event.preventDefault();
+          if (event.shiftKey) {
+            this.redo();
+          } else {
+            this.undo();
+          }
+        }
+        break;
+      case 'KeyY':
+        if (event.ctrlKey || event.metaKey) {
+          event.preventDefault();
+          this.redo();
+        }
+        break;
+      case 'ArrowLeft':
+        if (this.selectedClip && !event.shiftKey) {
+          event.preventDefault();
+          this.nudgeClip(-0.1);
+        }
+        break;
+      case 'ArrowRight':
+        if (this.selectedClip && !event.shiftKey) {
+          event.preventDefault();
+          this.nudgeClip(0.1);
+        }
+        break;
+    }
+  }
+
   private setupKeyboardShortcuts(): void {
-    document.addEventListener('keydown', this.handleKeyboardShortcuts.bind(this));
+    // Already handled by @HostListener
   }
 
   private removeKeyboardShortcuts(): void {
-    document.removeEventListener('keydown', this.handleKeyboardShortcuts.bind(this));
+    // Cleanup handled by @HostListener
   }
 
-  private handleKeyboardShortcuts(event: KeyboardEvent): void {
-    // Spacebar for play/pause
-    if (event.code === 'Space' && event.target === document.body) {
-      event.preventDefault();
-      this.togglePlayPause();
+  // Undo/Redo System
+  private saveState(): void {
+    const state: UndoRedoState = {
+      clips: JSON.parse(JSON.stringify(this.clips)),
+      selectedClip: this.selectedClip ? JSON.parse(JSON.stringify(this.selectedClip)) : null,
+      timestamp: Date.now()
+    };
+
+    this.undoStack.push(state);
+    if (this.undoStack.length > this.maxUndoStates) {
+      this.undoStack.shift();
     }
+    this.redoStack = []; // Clear redo stack when new action is performed
+  }
+
+  undo(): void {
+    if (this.undoStack.length > 1) {
+      const currentState = this.undoStack.pop()!;
+      this.redoStack.push(currentState);
+      
+      const previousState = this.undoStack[this.undoStack.length - 1];
+      this.restoreState(previousState);
+      this.showToast('Undone', 'info');
+    }
+  }
+
+  redo(): void {
+    if (this.redoStack.length > 0) {
+      const state = this.redoStack.pop()!;
+      this.undoStack.push(state);
+      this.restoreState(state);
+      this.showToast('Redone', 'info');
+    }
+  }
+
+  private restoreState(state: UndoRedoState): void {
+    this.clips = JSON.parse(JSON.stringify(state.clips));
+    this.selectedClip = state.selectedClip ? JSON.parse(JSON.stringify(state.selectedClip)) : null;
   }
 
   // UI Methods
@@ -314,6 +467,11 @@ export class StudioComponent implements OnInit, OnDestroy {
     if (tabId === 'media') {
       this.loadMedia();
     }
+  }
+
+  setTool(tool: string): void {
+    this.selectedTool = tool;
+    this.showToast(`Selected ${tool} tool`, 'info');
   }
 
   // Search and filtering
@@ -375,96 +533,93 @@ export class StudioComponent implements OnInit, OnDestroy {
   onMediaThumbnailError(event: Event, media: MediaDto): void {
     console.error('Media thumbnail failed to load:', media.title, media.video);
     const videoElement = event.target as HTMLVideoElement;
-    // Don't hide the element, just show placeholder
     videoElement.style.opacity = '0';
   }
 
-  openImportDialog(): void {
-    // Create file input for direct import
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'video/*,audio/*,image/*';
-    input.multiple = true;
-    
-    input.onchange = (e: any) => {
-      const files = e.target.files;
-      if (files && files.length > 0) {
-        this.handleFileImport(files);
-      }
-    };
-    
-    input.click();
+  onThumbnailLoaded(event: Event): void {
+    const video = event.target as HTMLVideoElement;
+    video.currentTime = 1;
   }
 
-  private handleFileImport(files: FileList): void {
-    this.isLoading = true;
-    this.loadingMessage = 'Importing media files...';
+  openImportDialog(): void {
+    this.fileInput.nativeElement.click();
+  }
+
+  handleFileImport(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const files = input.files;
     
-    const importPromises: Promise<any>[] = [];
-    
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    if (files && files.length > 0) {
+      this.isLoading = true;
+      this.loadingMessage = 'Importing media files...';
       
-      // Create media DTO
-      const mediaDto = {
-        title: file.name.replace(/\.[^/.]+$/, ''), // Remove extension
-        description: `Imported ${file.type} file`,
-        video: URL.createObjectURL(file), // Create blob URL
-        metaData: JSON.stringify({
-          fileName: file.name,
-          fileSize: file.size,
-          fileType: file.type,
-          importedAt: new Date().toISOString()
-        }),
-        projectId: '', // Will be set when added to timeline
-        sourceLanguage: 'en',
-        destinationLanguage: 'en',
-        countryDialect: ''
-      };
+      const importPromises: Promise<any>[] = [];
       
-      // Add to media service
-      const promise = this.mediaService.create(mediaDto).toPromise()
-        .then((createdMedia) => {
-          // Try to upload the actual file
-          const formData = new FormData();
-          formData.append('video', file, file.name);
-          
-          return this.mediaService.uploadVideo(createdMedia.id, formData).toPromise()
-            .catch((uploadError) => {
-              console.warn('File upload failed, but media record created:', uploadError);
-              return createdMedia; // Return the created media even if upload fails
-            });
-        })
-        .catch((error) => {
-          console.error('Failed to create media record:', error);
-          // Create a local media object for immediate use
-          return {
-            id: `local-${Date.now()}-${i}`,
-            title: mediaDto.title,
-            video: mediaDto.video,
-            description: mediaDto.description,
-            metaData: mediaDto.metaData
-          };
-        });
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // Create media DTO
+        const mediaDto = {
+          title: file.name.replace(/\.[^/.]+$/, ''),
+          description: `Imported ${file.type} file`,
+          video: URL.createObjectURL(file),
+          metaData: JSON.stringify({
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type,
+            importedAt: new Date().toISOString()
+          }),
+          projectId: '',
+          sourceLanguage: 'en',
+          destinationLanguage: 'en',
+          countryDialect: ''
+        };
+        
+        // Add to media service
+        const promise = this.mediaService.create(mediaDto).toPromise()
+          .then((createdMedia) => {
+            const formData = new FormData();
+            formData.append('video', file, file.name);
+            
+            return this.mediaService.uploadVideo(createdMedia.id, formData).toPromise()
+              .catch((uploadError) => {
+                console.warn('File upload failed, but media record created:', uploadError);
+                return createdMedia;
+              });
+          })
+          .catch((error) => {
+            console.error('Failed to create media record:', error);
+            return {
+              id: `local-${Date.now()}-${i}`,
+              title: mediaDto.title,
+              video: mediaDto.video,
+              description: mediaDto.description,
+              metaData: mediaDto.metaData
+            };
+          });
+        
+        importPromises.push(promise);
+      }
       
-      importPromises.push(promise);
+      Promise.allSettled(importPromises).then((results) => {
+        const successfulImports = results.filter(r => r.status === 'fulfilled').length;
+        const failedImports = results.length - successfulImports;
+        
+        this.isLoading = false;
+        
+        if (successfulImports > 0) {
+          this.showToast(`Successfully imported ${successfulImports} file(s)`, 'success');
+          this.loadMedia();
+        }
+        
+        if (failedImports > 0) {
+          this.showToast(`Failed to import ${failedImports} file(s)`, 'warning');
+        }
+      });
     }
     
-    Promise.allSettled(importPromises).then((results) => {
-      const successfulImports = results.filter(r => r.status === 'fulfilled').length;
-      const failedImports = results.length - successfulImports;
-      
-      this.isLoading = false;
-      
-      if (successfulImports > 0) {
-        this.showToast(`Successfully imported ${successfulImports} file(s)`, 'success');
-        this.loadMedia(); // Refresh media library
-      }
-      
-      if (failedImports > 0) {
-        this.showToast(`Failed to import ${failedImports} file(s)`, 'warning');
-      }
-    });
+    // Reset input
+    input.value = '';
   }
 
   // Playback controls
@@ -560,48 +715,71 @@ export class StudioComponent implements OnInit, OnDestroy {
     });
   }
 
-  isTrackMuted(type: 'video' | 'audio', trackIndex: number): boolean {
+  isTrackMuted(type: 'video' | 'audio' | 'text', trackIndex: number): boolean {
     return this.mutedTracks[`${type}-${trackIndex}`] || false;
   }
 
-  isTrackSolo(type: 'video' | 'audio', trackIndex: number): boolean {
+  isTrackSolo(type: 'video' | 'audio' | 'text', trackIndex: number): boolean {
     return this.soloTracks[`${type}-${trackIndex}`] || false;
   }
 
-  getTrackVolume(type: 'video' | 'audio', trackIndex: number): number {
+  getTrackVolume(type: 'video' | 'audio' | 'text', trackIndex: number): number {
     return this.trackVolumes[`${type}-${trackIndex}`] || 100;
   }
 
-  toggleTrackMute(type: 'video' | 'audio', trackIndex: number): void {
+  toggleTrackMute(type: 'video' | 'audio' | 'text', trackIndex: number): void {
     const key = `${type}-${trackIndex}`;
     this.mutedTracks[key] = !this.mutedTracks[key];
     this.showToast(`Track ${type} ${trackIndex + 1} ${this.mutedTracks[key] ? 'muted' : 'unmuted'}`, 'info');
   }
 
-  toggleTrackSolo(type: 'video' | 'audio', trackIndex: number): void {
+  toggleTrackSolo(type: 'video' | 'audio' | 'text', trackIndex: number): void {
     const key = `${type}-${trackIndex}`;
     this.soloTracks[key] = !this.soloTracks[key];
     this.showToast(`Track ${type} ${trackIndex + 1} ${this.soloTracks[key] ? 'soloed' : 'unsoloed'}`, 'info');
   }
 
-  setTrackVolume(type: 'video' | 'audio', trackIndex: number, event: Event): void {
+  setTrackVolume(type: 'video' | 'audio' | 'text', trackIndex: number, event: Event): void {
     const target = event.target as HTMLInputElement;
     const key = `${type}-${trackIndex}`;
     this.trackVolumes[key] = parseInt(target.value);
   }
 
+  onTrackClick(type: 'video' | 'audio' | 'text', trackIndex: number, event: MouseEvent): void {
+    if (this.selectedTool === 'razor') {
+      // Calculate time position and split clips at that position
+      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const timePosition = (x / rect.width) * this.totalDuration;
+      
+      this.splitClipsAtTime(type, trackIndex, timePosition);
+    }
+  }
+
   // Clip management
-  getClipsForTrack(type: 'video' | 'audio', trackIndex: number): Clip[] {
+  getClipsForTrack(type: 'video' | 'audio' | 'text', trackIndex: number): Clip[] {
     return this.clips
       .filter(clip => clip.trackType === type && clip.trackIndex === trackIndex)
       .sort((a, b) => a.startTime - b.startTime);
   }
 
-  selectClip(clip: Clip): void {
+  selectClip(clip: Clip, event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation();
+    }
     this.selectedClip = clip;
+    this.hideContextMenu();
     this.showToast(`Selected: ${clip.name}`, 'info');
   }
 
+  onClipRightClick(clip: Clip, event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.selectedClip = clip;
+    this.showContextMenu(event.clientX, event.clientY, clip);
+  }
+
+  // Drag and Drop
   onClipDrop(event: CdkDragDrop<any>): void {
     const dragData = event.item.data;
     const dropData = event.container.data;
@@ -610,6 +788,46 @@ export class StudioComponent implements OnInit, OnDestroy {
       this.addMediaToTimeline(dragData.media, dropData.type, dropData.index);
     } else if (dragData.effect) {
       this.applyEffect(dragData.effect);
+    } else if (dragData.template) {
+      this.addTextToTimeline(dragData.template, dropData.index);
+    } else if (dragData.id) {
+      // Moving existing clip
+      this.moveClip(dragData, dropData, event);
+    }
+  }
+
+  onPreviewDrop(event: CdkDragDrop<any>): void {
+    const dragData = event.item.data;
+    
+    if (dragData.media) {
+      this.addMediaToPreview(dragData.media);
+    }
+  }
+
+  onMediaLibraryDrop(event: CdkDragDrop<any>): void {
+    // Handle files dropped into media library
+    if (event.item.data?.files) {
+      this.handleFileImport(event.item.data.files);
+    }
+  }
+
+  onClipDragStart(clip: Clip): void {
+    this.selectedClip = clip;
+  }
+
+  onClipDragEnd(clip: Clip, event: any): void {
+    // Update clip position based on drop location
+    const dropPoint = event.dropPoint;
+    if (dropPoint) {
+      const rect = event.source.element.nativeElement.parentElement.getBoundingClientRect();
+      const newTime = ((dropPoint.x - rect.left) / rect.width) * this.totalDuration;
+      
+      if (newTime >= 0 && newTime <= this.totalDuration - clip.duration) {
+        clip.startTime = newTime;
+        clip.endTime = newTime + clip.duration;
+        this.saveState();
+        this.showToast(`Moved ${clip.name}`, 'info');
+      }
     }
   }
 
@@ -638,15 +856,51 @@ export class StudioComponent implements OnInit, OnDestroy {
       pan: 0,
       pitch: 0,
       effects: [],
-      keyframes: []
+      keyframes: [],
+      waveform: trackType === 'audio' ? this.generateWaveform() : undefined
     };
     
     newClip.endTime = newClip.startTime + newClip.duration;
     this.clips.push(newClip);
+    this.saveState();
     this.showToast(`Added "${media.title}" to timeline`, 'success');
   }
 
-  private findNextAvailableTime(trackType: 'video' | 'audio', trackIndex: number): number {
+  private addTextToTimeline(template: TitleTemplate, trackIndex: number): void {
+    const textClip: Clip = {
+      id: `text-${Date.now()}`,
+      name: template.name,
+      type: 'text',
+      trackType: 'text',
+      trackIndex: 0,
+      inPoint: 0,
+      outPoint: 5,
+      duration: 5,
+      startTime: this.currentTime,
+      endTime: this.currentTime + 5,
+      effects: [],
+      keyframes: [],
+      opacity: 100,
+      scale: 100,
+      rotation: 0
+    };
+    
+    this.clips.push(textClip);
+    this.saveState();
+    this.showToast(`Added ${template.name} text`, 'success');
+  }
+
+  private moveClip(dragData: any, dropData: any, event: CdkDragDrop<any>): void {
+    const clip = this.clips.find(c => c.id === dragData.id);
+    if (clip) {
+      clip.trackType = dropData.type;
+      clip.trackIndex = dropData.index;
+      this.saveState();
+      this.showToast(`Moved ${clip.name} to ${dropData.type} track ${dropData.index + 1}`, 'info');
+    }
+  }
+
+  private findNextAvailableTime(trackType: 'video' | 'audio' | 'text', trackIndex: number): number {
     const trackClips = this.getClipsForTrack(trackType, trackIndex);
     if (trackClips.length === 0) return 0;
     
@@ -654,6 +908,85 @@ export class StudioComponent implements OnInit, OnDestroy {
     return lastClip.endTime;
   }
 
+  private generateWaveform(): number[] {
+    // Generate fake waveform data
+    return Array.from({ length: 100 }, () => Math.random() * 100);
+  }
+
+  // Trimming
+  startTrimming(clip: Clip, side: 'left' | 'right', event: MouseEvent): void {
+    event.stopPropagation();
+    this.isTrimming = true;
+    this.trimClip = clip;
+    this.trimSide = side;
+    this.trimStartX = event.clientX;
+    this.trimStartTime = side === 'left' ? clip.startTime : clip.endTime;
+    
+    document.addEventListener('mousemove', this.onMouseMove);
+    document.addEventListener('mouseup', this.onMouseUp);
+  }
+
+  private onMouseMove = (event: MouseEvent): void => {
+    if (this.isTrimming && this.trimClip) {
+      const deltaX = event.clientX - this.trimStartX;
+      const deltaTime = (deltaX / 1000) * this.totalDuration * (100 / this.timelineZoom);
+      
+      if (this.trimSide === 'left') {
+        const newStartTime = Math.max(0, this.trimStartTime + deltaTime);
+        const maxStartTime = this.trimClip.endTime - 0.1; // Minimum duration
+        this.trimClip.startTime = Math.min(newStartTime, maxStartTime);
+        this.trimClip.duration = this.trimClip.endTime - this.trimClip.startTime;
+      } else {
+        const newEndTime = Math.min(this.totalDuration, this.trimStartTime + deltaTime);
+        const minEndTime = this.trimClip.startTime + 0.1; // Minimum duration
+        this.trimClip.endTime = Math.max(newEndTime, minEndTime);
+        this.trimClip.duration = this.trimClip.endTime - this.trimClip.startTime;
+      }
+    } else if (this.isDraggingPlayhead) {
+      const rect = document.querySelector('.timeline-tracks')?.getBoundingClientRect();
+      if (rect) {
+        const x = event.clientX - rect.left;
+        const newTime = Math.max(0, Math.min(this.totalDuration, (x / rect.width) * this.totalDuration));
+        this.currentTime = newTime;
+        
+        if (this.videoPlayer?.nativeElement) {
+          this.videoPlayer.nativeElement.currentTime = newTime;
+        }
+      }
+    }
+  };
+
+  private onMouseUp = (): void => {
+    if (this.isTrimming) {
+      this.isTrimming = false;
+      this.trimClip = null;
+      this.saveState();
+      this.showToast('Clip trimmed', 'info');
+    }
+    
+    if (this.isDraggingPlayhead) {
+      this.isDraggingPlayhead = false;
+    }
+    
+    document.removeEventListener('mousemove', this.onMouseMove);
+    document.removeEventListener('mouseup', this.onMouseUp);
+  };
+
+  // Playhead
+  getPlayheadPosition(): number {
+    return (this.currentTime / this.totalDuration) * (this.timelineZoom / 100) * 1000;
+  }
+
+  startPlayheadDrag(event: MouseEvent): void {
+    event.preventDefault();
+    this.isDraggingPlayhead = true;
+    this.playheadStartX = event.clientX;
+    
+    document.addEventListener('mousemove', this.onMouseMove);
+    document.addEventListener('mouseup', this.onMouseUp);
+  }
+
+  // Clip operations
   getClipPosition(clip: Clip): number {
     return (clip.startTime / this.totalDuration) * (this.timelineZoom / 100) * 1000;
   }
@@ -662,13 +995,147 @@ export class StudioComponent implements OnInit, OnDestroy {
     return (clip.duration / this.totalDuration) * (this.timelineZoom / 100) * 1000;
   }
 
-  getPlayheadPosition(): number {
-    return (this.currentTime / this.totalDuration) * (this.timelineZoom / 100) * 1000;
+  updateClipProperty(property: string, event: Event): void {
+    if (!this.selectedClip) return;
+    
+    const target = event.target as HTMLInputElement;
+    const value = target.type === 'number' ? parseFloat(target.value) : target.value;
+    
+    (this.selectedClip as any)[property] = value;
+    this.saveState();
+    this.showToast(`Updated ${property}`, 'info');
   }
 
-  startPlayheadDrag(event: MouseEvent): void {
-    event.preventDefault();
-    // Implement playhead dragging
+  nudgeClip(seconds: number): void {
+    if (!this.selectedClip) return;
+    
+    const newStartTime = Math.max(0, this.selectedClip.startTime + seconds);
+    const newEndTime = newStartTime + this.selectedClip.duration;
+    
+    if (newEndTime <= this.totalDuration) {
+      this.selectedClip.startTime = newStartTime;
+      this.selectedClip.endTime = newEndTime;
+      this.saveState();
+      this.showToast(`Nudged ${this.selectedClip.name}`, 'info');
+    }
+  }
+
+  // Context menu operations
+  private showContextMenu(x: number, y: number, clip?: Clip): void {
+    this.contextMenu = { visible: true, x, y, clip };
+  }
+
+  private hideContextMenu(): void {
+    this.contextMenu.visible = false;
+  }
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    this.hideContextMenu();
+  }
+
+  splitClip(): void {
+    if (!this.contextMenu.clip) return;
+    
+    const clip = this.contextMenu.clip;
+    const splitTime = this.currentTime;
+    
+    if (splitTime > clip.startTime && splitTime < clip.endTime) {
+      const newClip: Clip = {
+        ...JSON.parse(JSON.stringify(clip)),
+        id: `${clip.type}-${Date.now()}`,
+        startTime: splitTime,
+        endTime: clip.endTime,
+        duration: clip.endTime - splitTime
+      };
+      
+      clip.endTime = splitTime;
+      clip.duration = splitTime - clip.startTime;
+      
+      this.clips.push(newClip);
+      this.saveState();
+      this.showToast(`Split ${clip.name}`, 'success');
+    }
+    
+    this.hideContextMenu();
+  }
+
+  duplicateClip(): void {
+    if (!this.contextMenu.clip) return;
+    
+    const clip = this.contextMenu.clip;
+    const newClip: Clip = {
+      ...JSON.parse(JSON.stringify(clip)),
+      id: `${clip.type}-${Date.now()}`,
+      startTime: clip.endTime,
+      endTime: clip.endTime + clip.duration,
+      name: `${clip.name} Copy`
+    };
+    
+    this.clips.push(newClip);
+    this.saveState();
+    this.showToast(`Duplicated ${clip.name}`, 'success');
+    this.hideContextMenu();
+  }
+
+  extractAudio(): void {
+    if (!this.contextMenu.clip || this.contextMenu.clip.type !== 'video') return;
+    
+    const videoClip = this.contextMenu.clip;
+    const audioClip: Clip = {
+      ...JSON.parse(JSON.stringify(videoClip)),
+      id: `audio-${Date.now()}`,
+      type: 'audio',
+      trackType: 'audio',
+      trackIndex: 0,
+      name: `${videoClip.name} Audio`,
+      waveform: this.generateWaveform()
+    };
+    
+    this.clips.push(audioClip);
+    this.saveState();
+    this.showToast(`Extracted audio from ${videoClip.name}`, 'success');
+    this.hideContextMenu();
+  }
+
+  deleteClip(): void {
+    const clipToDelete = this.contextMenu.clip || this.selectedClip;
+    if (!clipToDelete) return;
+    
+    this.clips = this.clips.filter(c => c.id !== clipToDelete.id);
+    if (this.selectedClip?.id === clipToDelete.id) {
+      this.selectedClip = null;
+    }
+    this.saveState();
+    this.showToast(`Deleted ${clipToDelete.name}`, 'success');
+    this.hideContextMenu();
+  }
+
+  private splitClipsAtTime(trackType: 'video' | 'audio' | 'text', trackIndex: number, time: number): void {
+    const trackClips = this.getClipsForTrack(trackType, trackIndex);
+    const clipsToSplit = trackClips.filter(clip => 
+      time > clip.startTime && time < clip.endTime
+    );
+    
+    clipsToSplit.forEach(clip => {
+      const newClip: Clip = {
+        ...JSON.parse(JSON.stringify(clip)),
+        id: `${clip.type}-${Date.now()}`,
+        startTime: time,
+        endTime: clip.endTime,
+        duration: clip.endTime - time
+      };
+      
+      clip.endTime = time;
+      clip.duration = time - clip.startTime;
+      
+      this.clips.push(newClip);
+    });
+    
+    if (clipsToSplit.length > 0) {
+      this.saveState();
+      this.showToast(`Split ${clipsToSplit.length} clip(s)`, 'success');
+    }
   }
 
   // Effects and tools
@@ -678,30 +1145,24 @@ export class StudioComponent implements OnInit, OnDestroy {
         this.selectedClip.effects = [];
       }
       this.selectedClip.effects.push(effect);
+      this.saveState();
       this.showToast(`Applied ${effect.name} effect`, 'success');
     } else {
       this.showToast('Please select a clip first', 'warning');
     }
   }
 
+  removeEffect(index: number): void {
+    if (this.selectedClip?.effects) {
+      const effect = this.selectedClip.effects[index];
+      this.selectedClip.effects.splice(index, 1);
+      this.saveState();
+      this.showToast(`Removed ${effect.name} effect`, 'info');
+    }
+  }
+
   addTextElement(template: TitleTemplate): void {
-    const textClip: Clip = {
-      id: `text-${Date.now()}`,
-      name: template.name,
-      type: 'text',
-      trackType: 'video',
-      trackIndex: 1,
-      inPoint: 0,
-      outPoint: 5,
-      duration: 5,
-      startTime: this.currentTime,
-      endTime: this.currentTime + 5,
-      effects: [],
-      keyframes: []
-    };
-    
-    this.clips.push(textClip);
-    this.showToast(`Added ${template.name} text`, 'success');
+    this.addTextToTimeline(template, 0);
   }
 
   // Audio tools
@@ -741,7 +1202,36 @@ export class StudioComponent implements OnInit, OnDestroy {
 
   // Export
   openExportModal(): void {
-    this.showToast('Opening export settings...', 'info');
+    this.showExportModal = true;
+  }
+
+  closeExportModal(): void {
+    this.showExportModal = false;
+    this.isExporting = false;
+    this.exportProgress = 0;
+  }
+
+  startExport(): void {
+    this.isExporting = true;
+    this.exportProgress = 0;
+    
+    // Simulate export process
+    const interval = setInterval(() => {
+      this.exportProgress += 5;
+      
+      if (this.exportProgress >= 100) {
+        clearInterval(interval);
+        this.isExporting = false;
+        this.showToast('Video exported successfully!', 'success');
+        this.closeExportModal();
+        
+        // Simulate download
+        const link = document.createElement('a');
+        link.href = '#';
+        link.download = `${this.currentProjectName}.${this.exportSettings.format}`;
+        link.click();
+      }
+    }, 100);
   }
 
   // Utility methods
