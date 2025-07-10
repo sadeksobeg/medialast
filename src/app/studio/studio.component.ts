@@ -527,7 +527,17 @@ export class StudioComponent implements OnInit, OnDestroy {
   addMediaToPreview(media: MediaDto): void {
     this.selectedMedia = media;
     this.selectedVideoForPreview = media.video || '';
-    this.showToast(`Now previewing: ${media.title}`, 'success');
+    
+    // Wait for video element to be available
+    setTimeout(() => {
+      if (this.videoPlayer?.nativeElement) {
+        const video = this.videoPlayer.nativeElement;
+        video.load(); // Force reload
+        video.currentTime = 0;
+        this.currentTime = 0;
+        this.showToast(`Now previewing: ${media.title}`, 'success');
+      }
+    }, 100);
   }
 
   onMediaThumbnailError(event: Event, media: MediaDto): void {
@@ -558,11 +568,14 @@ export class StudioComponent implements OnInit, OnDestroy {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
+        // Create blob URL for immediate use
+        const blobUrl = URL.createObjectURL(file);
+        
         // Create media DTO
         const mediaDto = {
           title: file.name.replace(/\.[^/.]+$/, ''),
           description: `Imported ${file.type} file`,
-          video: URL.createObjectURL(file),
+          video: blobUrl,
           metaData: JSON.stringify({
             fileName: file.name,
             fileSize: file.size,
@@ -575,9 +588,29 @@ export class StudioComponent implements OnInit, OnDestroy {
           countryDialect: ''
         };
         
-        // Add to media service
+        // Add to local media list immediately
+        const localMedia: MediaDto = {
+          id: `local-${Date.now()}-${i}`,
+          title: mediaDto.title,
+          video: mediaDto.video,
+          description: mediaDto.description,
+          metaData: mediaDto.metaData,
+          sourceLanguage: mediaDto.sourceLanguage,
+          destinationLanguage: mediaDto.destinationLanguage,
+          countryDialect: mediaDto.countryDialect
+        };
+        
+        this.allMedia.push(localMedia);
+        
+        // Try to save to backend
         const promise = this.mediaService.create(mediaDto).toPromise()
           .then((createdMedia) => {
+            // Update the local media with the server ID
+            const index = this.allMedia.findIndex(m => m.id === localMedia.id);
+            if (index !== -1) {
+              this.allMedia[index] = { ...createdMedia, video: blobUrl };
+            }
+            
             const formData = new FormData();
             formData.append('video', file, file.name);
             
@@ -589,31 +622,22 @@ export class StudioComponent implements OnInit, OnDestroy {
           })
           .catch((error) => {
             console.error('Failed to create media record:', error);
-            return {
-              id: `local-${Date.now()}-${i}`,
-              title: mediaDto.title,
-              video: mediaDto.video,
-              description: mediaDto.description,
-              metaData: mediaDto.metaData
-            };
+            return localMedia; // Keep the local version
           });
         
         importPromises.push(promise);
       }
       
+      // Update UI immediately
+      this.filterMedia();
+      this.isLoading = false;
+      this.showToast(`Imported ${files.length} file(s) successfully!`, 'success');
+      
+      // Handle backend operations in background
       Promise.allSettled(importPromises).then((results) => {
-        const successfulImports = results.filter(r => r.status === 'fulfilled').length;
-        const failedImports = results.length - successfulImports;
-        
-        this.isLoading = false;
-        
-        if (successfulImports > 0) {
-          this.showToast(`Successfully imported ${successfulImports} file(s)`, 'success');
-          this.loadMedia();
-        }
-        
-        if (failedImports > 0) {
-          this.showToast(`Failed to import ${failedImports} file(s)`, 'warning');
+        const successfulUploads = results.filter(r => r.status === 'fulfilled').length;
+        if (successfulUploads > 0) {
+          this.showToast(`${successfulUploads} file(s) uploaded to server`, 'info');
         }
       });
     }
@@ -625,11 +649,20 @@ export class StudioComponent implements OnInit, OnDestroy {
   // Playback controls
   togglePlayPause(): void {
     if (this.videoPlayer?.nativeElement) {
+      const video = this.videoPlayer.nativeElement;
       if (this.isPlaying) {
-        this.videoPlayer.nativeElement.pause();
+        video.pause();
       } else {
-        this.videoPlayer.nativeElement.play();
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.error('Video play failed:', error);
+            this.showToast('Video playback failed. Please try a different file.', 'error');
+          });
+        }
       }
+    } else {
+      this.showToast('No video loaded for playback', 'warning');
     }
   }
 
@@ -652,6 +685,7 @@ export class StudioComponent implements OnInit, OnDestroy {
     const video = event.target as HTMLVideoElement;
     this.totalDuration = video.duration || 240;
     this.generateTimeMarkers();
+    this.showToast('Video loaded successfully', 'success');
   }
 
   onTimeUpdate(event: Event): void {
@@ -784,11 +818,11 @@ export class StudioComponent implements OnInit, OnDestroy {
     const dragData = event.item.data;
     const dropData = event.container.data;
     
-    if (dragData.media) {
+    if (dragData.type === 'media' && dragData.media) {
       this.addMediaToTimeline(dragData.media, dropData.type, dropData.index);
-    } else if (dragData.effect) {
+    } else if (dragData.type === 'effect' && dragData.effect) {
       this.applyEffect(dragData.effect);
-    } else if (dragData.template) {
+    } else if (dragData.type === 'text' && dragData.template) {
       this.addTextToTimeline(dragData.template, dropData.index);
     } else if (dragData.id) {
       // Moving existing clip
@@ -799,7 +833,7 @@ export class StudioComponent implements OnInit, OnDestroy {
   onPreviewDrop(event: CdkDragDrop<any>): void {
     const dragData = event.item.data;
     
-    if (dragData.media) {
+    if (dragData.type === 'media' && dragData.media) {
       this.addMediaToPreview(dragData.media);
     }
   }
