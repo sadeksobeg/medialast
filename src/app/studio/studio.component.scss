@@ -1,35 +1,38 @@
-.shotcut-studio {
+.professional-studio {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #2b2b2b;
+  background: #1e1e1e;
   color: #ffffff;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow: hidden;
+  user-select: none;
 }
 
-// Menu Bar (Shotcut style)
+// Menu Bar
 .menu-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 32px;
-  background: #3c3c3c;
+  height: 40px;
+  background: linear-gradient(135deg, #2d2d2d 0%, #3c3c3c 100%);
   border-bottom: 1px solid #555;
-  padding: 0 12px;
+  padding: 0 16px;
   z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   
   .menu-left {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 24px;
     
     .app-logo {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-weight: 600;
+      font-weight: 700;
       color: #4a90e2;
+      font-size: 14px;
       
       svg {
         color: #4a90e2;
@@ -38,57 +41,183 @@
     
     .menu-items {
       display: flex;
-      gap: 2px;
+      gap: 4px;
+      
+      .menu-dropdown {
+        position: relative;
+        
+        &:hover .dropdown-content {
+          display: block;
+        }
+        
+        .menu-btn {
+          background: transparent;
+          border: none;
+          color: #fff;
+          padding: 8px 16px;
+          font-size: 13px;
+          cursor: pointer;
+          border-radius: 4px;
+          transition: all 0.2s;
+          font-weight: 500;
+          
+          &:hover {
+            background: rgba(255, 255, 255, 0.1);
+          }
+        }
+        
+        .dropdown-content {
+          display: none;
+          position: absolute;
+          top: 100%;
+          left: 0;
+          background: #3c3c3c;
+          border: 1px solid #555;
+          border-radius: 6px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+          z-index: 1000;
+          min-width: 180px;
+          padding: 4px 0;
+          
+          a {
+            display: block;
+            padding: 8px 16px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            
+            &:hover {
+              background: #4a90e2;
+            }
+            
+            &.active {
+              background: rgba(74, 144, 226, 0.3);
+              color: #4a90e2;
+            }
+            
+            &.disabled {
+              color: #666;
+              cursor: not-allowed;
+              
+              &:hover {
+                background: transparent;
+              }
+            }
+          }
+          
+          hr {
+            border: none;
+            border-top: 1px solid #555;
+            margin: 4px 0;
+          }
+        }
+      }
       
       .menu-btn {
         background: transparent;
         border: none;
         color: #fff;
-        padding: 4px 12px;
-        font-size: 12px;
+        padding: 8px 16px;
+        font-size: 13px;
         cursor: pointer;
-        border-radius: 3px;
-        transition: background 0.2s;
+        border-radius: 4px;
+        transition: all 0.2s;
+        font-weight: 500;
         
         &:hover {
-          background: #4a4a4a;
+          background: rgba(255, 255, 255, 0.1);
         }
       }
     }
   }
   
   .menu-center {
-    .project-name {
-      font-size: 12px;
-      color: #ccc;
-      font-weight: 500;
+    .project-info {
+      text-align: center;
+      
+      .project-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 2px;
+      }
+      
+      .project-stats {
+        font-size: 11px;
+        color: #aaa;
+        font-family: monospace;
+      }
     }
   }
   
   .menu-right {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    gap: 16px;
     
-    .menu-btn {
-      background: transparent;
-      border: none;
-      color: #fff;
-      padding: 4px 12px;
-      font-size: 12px;
-      cursor: pointer;
-      border-radius: 3px;
-      transition: all 0.2s;
+    .playback-controls {
+      display: flex;
+      gap: 4px;
       
-      &:hover {
+      .playback-btn {
+        width: 32px;
+        height: 32px;
         background: #4a4a4a;
-      }
-      
-      &.export-btn {
-        background: #4a90e2;
-        color: white;
+        border: 1px solid #666;
+        color: #fff;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
         
         &:hover {
-          background: #357abd;
+          background: #5a5a5a;
+          transform: translateY(-1px);
+        }
+        
+        &.play-pause {
+          background: #4a90e2;
+          border-color: #4a90e2;
+          
+          &:hover {
+            background: #357abd;
+          }
+        }
+      }
+    }
+    
+    .menu-actions {
+      display: flex;
+      gap: 8px;
+      
+      .menu-btn {
+        background: transparent;
+        border: 1px solid #666;
+        color: #fff;
+        padding: 8px 16px;
+        font-size: 13px;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: all 0.2s;
+        font-weight: 500;
+        
+        &:hover {
+          background: rgba(255, 255, 255, 0.1);
+          border-color: #888;
+        }
+        
+        &.export-btn {
+          background: linear-gradient(135deg, #4a90e2, #357abd);
+          border-color: #4a90e2;
+          
+          &:hover {
+            background: linear-gradient(135deg, #357abd, #2968a3);
+            transform: translateY(-1px);
+          }
         }
       }
     }
@@ -103,11 +232,12 @@
 }
 
 .left-panel {
-  width: 300px;
+  width: 320px;
   background: #2b2b2b;
   border-right: 1px solid #555;
   display: flex;
   flex-direction: column;
+  transition: width 0.3s ease;
 }
 
 .center-panel {
@@ -115,20 +245,23 @@
   background: #1a1a1a;
   display: flex;
   flex-direction: column;
+  min-width: 400px;
 }
 
 .right-panel {
-  width: 250px;
+  width: 300px;
   background: #2b2b2b;
   border-left: 1px solid #555;
   display: flex;
   flex-direction: column;
+  transition: width 0.3s ease;
 }
 
 .bottom-panel {
-  height: 300px;
+  height: 350px;
   background: #2b2b2b;
   border-top: 1px solid #555;
+  transition: height 0.3s ease;
 }
 
 // Panel Tabs
@@ -139,14 +272,19 @@
   
   .tab-btn {
     flex: 1;
-    padding: 8px 12px;
+    padding: 12px 16px;
     background: transparent;
     border: none;
     color: #ccc;
-    font-size: 12px;
+    font-size: 13px;
     cursor: pointer;
     transition: all 0.2s;
     border-bottom: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-weight: 500;
     
     &:hover {
       background: #4a4a4a;
@@ -158,6 +296,10 @@
       color: #4a90e2;
       border-bottom-color: #4a90e2;
     }
+    
+    i {
+      font-size: 14px;
+    }
   }
 }
 
@@ -165,28 +307,115 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
 }
 
-// Utility method for time formatting
-.shotcut-studio {
-  .time-display {
-    font-family: 'Courier New', monospace;
-    font-size: 11px;
-    color: #4a90e2;
+// Status Bar
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 24px;
+  background: #333;
+  border-top: 1px solid #555;
+  padding: 0 16px;
+  font-size: 11px;
+  color: #aaa;
+  
+  .status-left,
+  .status-center,
+  .status-right {
+    display: flex;
+    gap: 16px;
+  }
+  
+  .status-item {
+    padding: 2px 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+    font-family: monospace;
+    
+    &.recording {
+      background: #ff4444;
+      color: white;
+      animation: pulse 1s infinite;
+    }
+  }
+}
+
+// Fullscreen mode
+.professional-studio.fullscreen {
+  .menu-bar {
+    display: none;
+  }
+  
+  .status-bar {
+    display: none;
   }
 }
 
 // Icons
+.icon-play::before { content: '▶'; }
+.icon-pause::before { content: '⏸'; }
+.icon-skip-start::before { content: '⏮'; }
+.icon-skip-end::before { content: '⏭'; }
+.icon-step-backward::before { content: '⏪'; }
+.icon-step-forward::before { content: '⏩'; }
 .icon-fullscreen::before { content: '⛶'; }
+.icon-media::before { content: '🎬'; }
+.icon-effects::before { content: '✨'; }
+.icon-timeline::before { content: '📊'; }
+.icon-console::before { content: '💻'; }
+
+// Animations
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
 
 // Responsive Design
+@media (max-width: 1400px) {
+  .left-panel {
+    width: 280px;
+  }
+  
+  .right-panel {
+    width: 250px;
+  }
+}
+
 @media (max-width: 1200px) {
+  .menu-bar {
+    .menu-left .menu-items {
+      gap: 2px;
+      
+      .menu-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+    }
+    
+    .menu-center .project-info {
+      .project-name {
+        font-size: 13px;
+      }
+      
+      .project-stats {
+        font-size: 10px;
+      }
+    }
+  }
+  
   .left-panel {
     width: 250px;
   }
   
   .right-panel {
-    width: 300px;
+    width: 220px;
   }
 }
 
@@ -202,13 +431,81 @@
   }
   
   .bottom-panel {
-    height: 200px;
+    height: 250px;
+  }
+  
+  .menu-bar {
+    .menu-left .menu-items {
+      display: none;
+    }
+    
+    .playback-controls {
+      gap: 2px;
+      
+      .playback-btn {
+        width: 28px;
+        height: 28px;
+      }
+    }
   }
 }
 
-// Fullscreen mode
-.shotcut-studio:fullscreen {
-  .menu-bar {
-    display: none;
+// Dark theme enhancements
+.professional-studio {
+  // Scrollbar styling
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #2b2b2b;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+    
+    &:hover {
+      background: #666;
+    }
+  }
+  
+  // Selection styling
+  ::selection {
+    background: rgba(74, 144, 226, 0.3);
+  }
+  
+  // Focus styling
+  button:focus,
+  input:focus,
+  select:focus {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .professional-studio {
+    .menu-bar {
+      border-bottom-color: #fff;
+    }
+    
+    .panel-tabs .tab-btn.active {
+      border-bottom-color: #fff;
+    }
+    
+    .status-bar {
+      border-top-color: #fff;
+    }
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  .professional-studio * {
+    transition: none !important;
+    animation: none !important;
   }
 }

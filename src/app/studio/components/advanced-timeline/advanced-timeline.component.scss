@@ -1,0 +1,724 @@
+.advanced-timeline {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #1e1e1e;
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+  user-select: none;
+}
+
+// Timeline Header
+.timeline-header {
+  background: #2d2d2d;
+  border-bottom: 1px solid #444;
+  z-index: 100;
+}
+
+.timeline-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid #333;
+  
+  .tool-group {
+    display: flex;
+    gap: 2px;
+    
+    .tool-btn {
+      width: 32px;
+      height: 32px;
+      background: #3c3c3c;
+      border: 1px solid #555;
+      color: #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      
+      &:hover {
+        background: #4a4a4a;
+        color: #fff;
+      }
+      
+      &.active {
+        background: #4a90e2;
+        border-color: #4a90e2;
+        color: white;
+      }
+    }
+  }
+  
+  .timeline-controls {
+    display: flex;
+    gap: 8px;
+    
+    .btn {
+      padding: 6px 12px;
+      background: #3c3c3c;
+      border: 1px solid #555;
+      color: #ccc;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      
+      &:hover {
+        background: #4a4a4a;
+        color: #fff;
+      }
+    }
+  }
+  
+  .zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    .btn {
+      width: 28px;
+      height: 28px;
+      background: #3c3c3c;
+      border: 1px solid #555;
+      color: #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      
+      &:hover {
+        background: #4a4a4a;
+      }
+    }
+    
+    .zoom-level {
+      font-size: 11px;
+      color: #ccc;
+      min-width: 40px;
+      text-align: center;
+      font-family: monospace;
+    }
+  }
+}
+
+.time-ruler-container {
+  display: flex;
+  height: 40px;
+  background: #333;
+  border-bottom: 1px solid #444;
+  
+  .track-headers-spacer {
+    width: 200px;
+    background: #3c3c3c;
+    border-right: 1px solid #555;
+    flex-shrink: 0;
+  }
+  
+  .time-ruler {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    
+    .time-marker {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      
+      .time-label {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        font-size: 10px;
+        color: #ccc;
+        font-family: monospace;
+      }
+      
+      .marker-line {
+        position: absolute;
+        left: 0;
+        top: 25px;
+        width: 1px;
+        height: 15px;
+        background: #666;
+      }
+    }
+    
+    .playhead {
+      position: absolute;
+      top: 0;
+      width: 2px;
+      height: 100%;
+      z-index: 50;
+      cursor: ew-resize;
+      
+      .playhead-line {
+        width: 2px;
+        height: 100%;
+        background: #ff4444;
+        box-shadow: 0 0 4px rgba(255, 68, 68, 0.5);
+      }
+      
+      .playhead-handle {
+        position: absolute;
+        top: -4px;
+        left: -6px;
+        width: 14px;
+        height: 16px;
+        background: #ff4444;
+        border-radius: 2px;
+        cursor: grab;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        
+        &:active {
+          cursor: grabbing;
+        }
+        
+        &::after {
+          content: '';
+          position: absolute;
+          top: 100%;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 0;
+          height: 0;
+          border-left: 6px solid transparent;
+          border-right: 6px solid transparent;
+          border-top: 6px solid #ff4444;
+        }
+      }
+    }
+  }
+}
+
+// Timeline Content
+.timeline-content {
+  flex: 1;
+  overflow: auto;
+  
+  &::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #1e1e1e;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 6px;
+    
+    &:hover {
+      background: #666;
+    }
+  }
+}
+
+.timeline-tracks {
+  display: flex;
+  min-height: 100%;
+}
+
+.track-headers {
+  width: 200px;
+  background: #2d2d2d;
+  border-right: 1px solid #555;
+  flex-shrink: 0;
+}
+
+.track-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid #333;
+  background: #3c3c3c;
+  
+  &.track-header-video {
+    background: linear-gradient(90deg, #3c3c3c 0%, #4a4a4a 100%);
+  }
+  
+  &.track-header-audio {
+    background: linear-gradient(90deg, #3c3c3c 0%, #4a3c3c 100%);
+  }
+  
+  .track-controls {
+    display: flex;
+    gap: 2px;
+    margin-right: 8px;
+    
+    .track-btn {
+      width: 18px;
+      height: 18px;
+      background: transparent;
+      border: 1px solid #666;
+      color: #ccc;
+      border-radius: 2px;
+      font-size: 9px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      &:hover {
+        background: #4a4a4a;
+      }
+      
+      &.active {
+        &.mute {
+          background: #ff6b6b;
+          border-color: #ff6b6b;
+          color: white;
+        }
+        
+        &.solo {
+          background: #ffd93d;
+          border-color: #ffd93d;
+          color: #333;
+        }
+        
+        &.lock {
+          background: #ffa500;
+          border-color: #ffa500;
+          color: white;
+        }
+        
+        &.hide {
+          background: #666;
+          border-color: #666;
+          color: white;
+        }
+      }
+    }
+  }
+  
+  .track-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    
+    .track-name {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 2px 4px;
+      border-radius: 2px;
+      
+      &:focus {
+        background: #4a4a4a;
+        outline: none;
+      }
+    }
+    
+    .track-type {
+      font-size: 9px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+  
+  .track-volume {
+    margin: 0 8px;
+    
+    .volume-slider {
+      width: 60px;
+      height: 4px;
+      background: #555;
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+      
+      &::-webkit-slider-thumb {
+        appearance: none;
+        width: 12px;
+        height: 12px;
+        background: #4a90e2;
+        border-radius: 50%;
+        cursor: pointer;
+      }
+    }
+  }
+  
+  .track-remove {
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    border: 1px solid #666;
+    color: #ccc;
+    border-radius: 2px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    
+    &:hover {
+      background: #ff6b6b;
+      border-color: #ff6b6b;
+      color: white;
+    }
+  }
+}
+
+.track-content-container {
+  flex: 1;
+  position: relative;
+}
+
+.track-content {
+  position: relative;
+  border-bottom: 1px solid #333;
+  
+  &.track-video {
+    background: linear-gradient(90deg, #2a2a2a 0%, #2e2e2e 100%);
+  }
+  
+  &.track-audio {
+    background: linear-gradient(90deg, #2a2a2a 0%, #2e2a2a 100%);
+  }
+  
+  .track-grid {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    pointer-events: none;
+    
+    .grid-line {
+      position: absolute;
+      top: 0;
+      width: 1px;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+}
+
+// Clips
+.clip {
+  position: absolute;
+  top: 4px;
+  height: calc(100% - 8px);
+  border-radius: 4px;
+  cursor: pointer;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.1s;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+  
+  &.selected {
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3);
+  }
+  
+  &.clip-video {
+    background: linear-gradient(135deg, #4a90e2, #357abd);
+  }
+  
+  &.clip-audio {
+    background: linear-gradient(135deg, #5cb85c, #449d44);
+  }
+  
+  &.clip-image {
+    background: linear-gradient(135deg, #f0ad4e, #ec971f);
+  }
+  
+  &.clip-text {
+    background: linear-gradient(135deg, #d9534f, #c9302c);
+  }
+}
+
+.clip-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 4px 8px;
+  position: relative;
+  
+  .clip-thumbnail {
+    width: 40px;
+    height: calc(100% - 4px);
+    margin-right: 8px;
+    border-radius: 2px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+    
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+  
+  .clip-waveform {
+    flex: 1;
+    height: calc(100% - 4px);
+    margin-right: 8px;
+    
+    canvas {
+      width: 100%;
+      height: 100%;
+    }
+  }
+  
+  .clip-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    
+    .clip-name {
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.9);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+    
+    .clip-duration {
+      font-size: 9px;
+      color: rgba(255, 255, 255, 0.7);
+      font-family: monospace;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+  }
+  
+  .clip-effects {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 12px;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    i {
+      font-size: 8px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+}
+
+.clip-handles {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  
+  .clip-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    background: rgba(255, 255, 255, 0.3);
+    cursor: ew-resize;
+    pointer-events: all;
+    opacity: 0;
+    transition: opacity 0.2s;
+    
+    &.left {
+      left: 0;
+      border-radius: 4px 0 0 4px;
+    }
+    
+    &.right {
+      right: 0;
+      border-radius: 0 4px 4px 0;
+    }
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.6);
+    }
+  }
+}
+
+.fade-handles {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  
+  .fade-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2));
+    cursor: ew-resize;
+    pointer-events: all;
+    opacity: 0.7;
+    
+    &.fade-in {
+      left: 0;
+    }
+    
+    &.fade-out {
+      right: 0;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.2), transparent);
+    }
+  }
+}
+
+.clip:hover .clip-handle {
+  opacity: 1;
+}
+
+// Timeline Footer
+.timeline-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #2d2d2d;
+  border-top: 1px solid #444;
+  
+  .timeline-info {
+    display: flex;
+    gap: 16px;
+    font-size: 11px;
+    color: #ccc;
+    font-family: monospace;
+    
+    span {
+      padding: 2px 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+    }
+  }
+  
+  .snap-controls {
+    display: flex;
+    gap: 4px;
+    
+    .snap-btn {
+      width: 24px;
+      height: 24px;
+      background: #3c3c3c;
+      border: 1px solid #555;
+      color: #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      
+      &:hover {
+        background: #4a4a4a;
+      }
+      
+      &.active {
+        background: #4a90e2;
+        border-color: #4a90e2;
+        color: white;
+      }
+    }
+  }
+}
+
+// Icons (using CSS pseudo-elements for simplicity)
+.icon-cursor::before { content: '↖'; }
+.icon-scissors::before { content: '✂'; }
+.icon-slip::before { content: '↔'; }
+.icon-zoom::before { content: '🔍'; }
+.icon-plus::before { content: '+'; }
+.icon-marker::before { content: '📍'; }
+.icon-zoom-out::before { content: '−'; }
+.icon-zoom-in::before { content: '+'; }
+.icon-trash::before { content: '🗑'; }
+.icon-effects::before { content: '✨'; }
+.icon-grid::before { content: '⊞'; }
+.icon-magnet::before { content: '🧲'; }
+
+// Drag and drop styles
+.cdk-drag-preview {
+  background: rgba(74, 144, 226, 0.9);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: rotate(2deg);
+  opacity: 0.8;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.4;
+  background: rgba(74, 144, 226, 0.2);
+  border: 2px dashed #4a90e2;
+}
+
+.cdk-drag-animating {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drop-list-dragging .clip:not(.cdk-drag-placeholder) {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+// Responsive design
+@media (max-width: 1200px) {
+  .track-headers {
+    width: 150px;
+  }
+  
+  .track-headers-spacer {
+    width: 150px;
+  }
+}
+
+@media (max-width: 768px) {
+  .timeline-toolbar {
+    flex-direction: column;
+    gap: 8px;
+    
+    .tool-group,
+    .timeline-controls,
+    .zoom-controls {
+      justify-content: center;
+    }
+  }
+  
+  .track-headers {
+    width: 120px;
+  }
+  
+  .track-headers-spacer {
+    width: 120px;
+  }
+  
+  .track-header {
+    padding: 4px 8px;
+    
+    .track-info .track-name {
+      font-size: 10px;
+    }
+  }
+}
