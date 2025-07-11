@@ -7,7 +7,7 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './studio-action-button.component.html',
-  styleUrl: './studio-action-button.component.scss',
+  styleUrls: ['./studio-action-button.component.scss'],
   animations: [
     trigger('buttonState', [
       state('idle', style({

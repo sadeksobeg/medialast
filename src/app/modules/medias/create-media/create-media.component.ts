@@ -10,7 +10,7 @@ import { ProjectService, ProjectDto } from '@proxy/projects';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './create-media.component.html',
-  styleUrl: './create-media.component.scss'
+  styleUrls: ['./create-media.component.scss']
 })
 export class CreateMediaComponent implements OnInit {
   media: CreateUpdateMediaDto = {

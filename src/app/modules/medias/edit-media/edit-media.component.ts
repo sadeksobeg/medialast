@@ -10,7 +10,7 @@ import { FormsModule } from '@angular/forms';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './edit-media.component.html',
-  styleUrl: './edit-media.component.scss'
+  styleUrls: ['./edit-media.component.scss']
 })
 export class EditMediaComponent implements OnInit {
   mediaId!: string;

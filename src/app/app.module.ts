@@ -1,7 +1,6 @@
 import { CoreModule, provideAbpCore, withOptions } from '@abp/ng.core';
 import { registerLocale } from '@abp/ng.core/locale';
 import {
-  InternetConnectionStatusComponent,
   ThemeSharedModule,
   provideAbpThemeShared,
 } from '@abp/ng.theme.shared';
@@ -14,30 +13,18 @@ import { provideAccountConfig } from '@abp/ng.account/config';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { DragDropModule } from '@angular/cdk/drag-drop';
 import { environment } from '../environments/environment';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { APP_ROUTE_PROVIDER } from './route.provider';
-import { ThemeLeptonXModule } from '@abp/ng.theme.lepton-x';
-import { SideMenuLayoutModule } from '@abp/ng.theme.lepton-x/layouts';
-import { AccountLayoutModule } from '@abp/ng.theme.lepton-x/account';
 
 @NgModule({
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
-    DragDropModule,
     AppRoutingModule,
     CoreModule,
     ThemeSharedModule,
-    
-    
-    
-    InternetConnectionStatusComponent,
-                   ThemeLeptonXModule.forRoot(),
-                   SideMenuLayoutModule.forRoot(),
-                   AccountLayoutModule.forRoot(),
   ],
   declarations: [AppComponent],
   providers: [

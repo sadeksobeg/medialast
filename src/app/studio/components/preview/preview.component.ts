@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 import { TimelineService } from '../../services/timeline.service';
 import { PlaybackState } from '../../models/studio.models';
@@ -7,7 +8,7 @@ import { PlaybackState } from '../../models/studio.models';
 @Component({
   selector: 'app-preview',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="preview-container">
       <div class="preview-header">
